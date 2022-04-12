@@ -1,24 +1,70 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import StudentProfile from "./components/studentProfile";
+import { useSelector } from "react-redux";
+import { RootState } from "./app/store";
+import { useAppDispatch } from "./app/hooks";
+import {
+  fetchStudentsRequest,
+  listQueryIsUpdated,
+  shouldDisplayNextStudentSlot,
+} from "./features/student/student.slice";
+import CustomeInput from "./components/customInput";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 function App() {
+  const {
+    students,
+    didDisplayStudentIds,
+    fetchState,
+    nextStudentSlotHeadPtr,
+    hasMore,
+  } = useSelector((state: RootState) => state.student);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    async function fetchStudentsHelper() {
+      await dispatch(fetchStudentsRequest());
+    }
+
+    fetchStudentsHelper();
+  }, []);
+
+  if (fetchState === "rejected") return <div>Something went wrong</div>;
+  if (fetchState === "pending") return <div>Loading...</div>;
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <div className="h-screen bg-gray-250 rounded-4xl py-16 px-36">
+      <div
+        id="scrollableDiv"
+        className="flex flex-col rounded h-full overflow-y-scroll no-scrollbar bg-white shadow-md"
+      >
+        <CustomeInput
+          placeholder="Search by name"
+          onChange={(input) => {
+            dispatch(listQueryIsUpdated({ type: "name", value: input }));
+          }}
+        />
+        <CustomeInput
+          placeholder="Search by tag"
+          onChange={(input) => {
+            dispatch(listQueryIsUpdated({ type: "tag", value: input }));
+          }}
+        />
+
+        <InfiniteScroll
+          dataLength={nextStudentSlotHeadPtr}
+          next={() => {
+            console.log("next next");
+            dispatch(shouldDisplayNextStudentSlot());
+          }}
+          hasMore={hasMore}
+          loader={<div>Loading...</div>}
+          scrollableTarget="scrollableDiv"
         >
-          Learn React
-        </a>
-      </header>
+          {didDisplayStudentIds.map((id) => (
+            <StudentProfile key={id} student={students[id]} />
+          ))}
+        </InfiniteScroll>
+      </div>
     </div>
   );
 }
