@@ -6,6 +6,8 @@ import { average } from "../utils/arithmetic";
 import CustomeInput from "./customInput";
 import Grade from "./grade";
 import Tag from "./tag";
+import SubtractIcon from "../icons/subtract";
+import AddIcon from "../icons/add";
 
 type StudentProfileProps = {
   student: IStudentLocal;
@@ -52,12 +54,12 @@ const StudentProfile: FC<StudentProfileProps> = ({ student }) => {
         </div>
       </div>
       <button
-        className=" text-4xl font-bold text-gray-500 self-baseline"
+        className="mt-1 w-8 h-8 self-baseline"
         onClick={() => {
           setIsExpanded((prev) => !prev);
         }}
       >
-        {isExpanded ? "-" : "+"}
+        {isExpanded ? <SubtractIcon /> : <AddIcon />}
       </button>
     </div>
   );
