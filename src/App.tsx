@@ -32,7 +32,7 @@ function App() {
   if (fetchState === 'rejected') return <div>Something went wrong</div>;
   if (fetchState === 'pending') return <div>Loading...</div>;
   return (
-    <div className="h-screen bg-gray-250 rounded-4xl py-16 px-36">
+    <div className="h-screen bg-gray-250 rounded-4xl lg:py-16 lg:px-36">
       <div
         id="scrollableDiv"
         className="flex flex-col rounded h-full overflow-y-scroll no-scrollbar bg-white shadow-md"
