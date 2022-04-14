@@ -1,10 +1,10 @@
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { RootState } from "../../app/store";
-import { IStudent, IStudentLocal, } from "../../interfaces/student";
-import { fetchStudents } from "./student.api";
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { IStudent, IStudentLocal } from '../../interfaces/student';
+import { fetchStudents } from './student.api';
+import type { RootState } from '../../app/store';
 
 interface StudentState {
-  fetchState: "idle" | "pending" | "rejected";
+  fetchState: 'idle' | 'pending' | 'rejected';
   students: Record<string, IStudentLocal>;
   studentIds: string[];
   shouldDisplayStudentIds: string[];
@@ -13,18 +13,26 @@ interface StudentState {
   searchTag: string;
   nextStudentSlotHeadPtr: number;
   hasMore: boolean;
+  searchNameCache: Record<string, { studentIds: string[]; refCount: number }>;
+  searchNameCacheKeyQueue: string[];
+  searchTagCache: Record<string, { studentIds: string[]; refCount: number }>;
+  searchTagCacheKeyQueue: string[];
 }
 
 const initialState: StudentState = {
-  fetchState: "idle",
+  fetchState: 'idle',
   students: {},
   studentIds: [],
   shouldDisplayStudentIds: [],
   didDisplayStudentIds: [],
-  searchName: "",
-  searchTag: "",
+  searchName: '',
+  searchTag: '',
   nextStudentSlotHeadPtr: 0,
   hasMore: true,
+  searchNameCache: {},
+  searchNameCacheKeyQueue: [],
+  searchTagCache: {},
+  searchTagCacheKeyQueue: [],
 };
 
 export const fetchStudentsRequest = createAsyncThunk<
@@ -32,7 +40,7 @@ export const fetchStudentsRequest = createAsyncThunk<
   void,
   { state: RootState }
 >(
-  "student/fetchStudentsRequest",
+  'student/fetchStudentsRequest',
   async () => {
     const res = await fetchStudents();
     return res.data.students;
@@ -40,85 +48,270 @@ export const fetchStudentsRequest = createAsyncThunk<
   {
     condition: (_, { getState }) => {
       const { fetchState } = getState().student;
-      if (fetchState !== "idle") return false;
+      if (fetchState !== 'idle') return false;
     },
   }
 );
 
+function getNextSlotInfo(dataLength: number) {
+  if (dataLength <= 10) {
+    return { nextSlotSize: dataLength, hasMore: false };
+  }
+  return { nextSlotSize: 10, hasMore: true };
+}
+
+function getSearchInfo(
+  searchCacheKeyQueue: string[],
+  searchCache: Record<string, { studentIds: string[]; refCount: number }>,
+  target: string,
+  getShouldDisplayStudentIds: (
+    students: Record<string, IStudentLocal>,
+    studentIds: string[],
+    name: string
+  ) => string[],
+  students: Record<string, IStudentLocal>,
+  studentIds: string[]
+) {
+  let oldestKey: string | undefined;
+  let oldestKeyRefCount: number | undefined;
+  let targetKeyRefCount: number;
+  let shouldDisplayStudentIds: string[];
+  if (searchCacheKeyQueue.length === 100) {
+    //queue is full
+    oldestKey = searchCacheKeyQueue[0];
+    oldestKeyRefCount = searchCache[oldestKey!].refCount - 1;
+  }
+
+  if (searchCache[target]) {
+    //name exists in cache
+    targetKeyRefCount = searchCache[target].refCount + 1;
+    shouldDisplayStudentIds = searchCache[target].studentIds;
+  } else {
+    //name doesn't exist in cache
+    shouldDisplayStudentIds = getShouldDisplayStudentIds(
+      students,
+      studentIds,
+      target
+    );
+    targetKeyRefCount = 1;
+  }
+
+  return {
+    oldestKey,
+    oldestKeyRefCount,
+    targetKeyRefCount,
+    shouldDisplayStudentIds,
+  };
+}
+
+function getShouldDisplayStudentIdsByName(
+  students: Record<string, IStudentLocal>,
+  studentIds: string[],
+  name: string
+): string[] {
+  return studentIds.reduce<string[]>((res, id) => {
+    if (students[id].fullName.includes(name)) {
+      return [...res, id];
+    }
+    return res;
+  }, []);
+}
+
+function getShouldDisplayStudentIdsByTag(
+  students: Record<string, IStudentLocal>,
+  studentIds: string[],
+  tag: string
+): string[] {
+  return studentIds.reduce<string[]>((res, id) => {
+    if (students[id].tags.find((addedTag) => addedTag.toUpperCase().includes(tag))) {
+      return [...res, id];
+    }
+    return res;
+  }, []);
+}
+
 const studentSlice = createSlice({
-  name: "student",
+  name: 'student',
   initialState,
   reducers: {
     listQueryIsUpdated: (
       state,
-      action: PayloadAction<{ type: "name" | "tag"; value: string }>
+      action: PayloadAction<{ type: 'name' | 'tag'; value: string }>
     ) => {
       const query = {
         name: state.searchName,
         tag: state.searchTag,
       };
       const { type, value } = action.payload;
-      type === "name" ? (query.name = value) : (query.tag = value);
+      type === 'name' ? (query.name = value) : (query.tag = value);
       state.searchName = query.name;
       state.searchTag = query.tag;
       if (query.tag.length === 0 && query.name.length === 0) {
-        state.shouldDisplayStudentIds = state.studentIds;
+        const { studentIds } = state;
+        const { nextSlotSize, hasMore } = getNextSlotInfo(studentIds.length);
+        state.hasMore = hasMore;
+        state.shouldDisplayStudentIds = studentIds;
+        state.nextStudentSlotHeadPtr = nextSlotSize;
+        state.didDisplayStudentIds = studentIds.slice(0, nextSlotSize);
         return;
       }
+
       if (query.tag.length === 0) {
-        const UpperCaseQueryName = query.name.toUpperCase();
-        state.shouldDisplayStudentIds = state.studentIds.reduce<string[]>(
-          (res, id) => {
-            if (state.students[id].fullName.includes(UpperCaseQueryName)) {
-              return [...res, id];
-            }
-            return res;
-          },
-          []
+        const upperCaseQueryName = query.name.toUpperCase();
+        const {
+          oldestKey,
+          oldestKeyRefCount,
+          targetKeyRefCount,
+          shouldDisplayStudentIds,
+        } = getSearchInfo(
+          state.searchNameCacheKeyQueue,
+          state.searchNameCache,
+          upperCaseQueryName,
+          getShouldDisplayStudentIdsByName,
+          state.students,
+          state.studentIds
         );
-        return;
-      }
-      if (query.name.length === 0) {
-        const upperCaseQueryTag = query.tag.toUpperCase();
-        state.shouldDisplayStudentIds = state.studentIds.reduce<string[]>(
-          (res, id) => {
-            const student = state.students[id];
-            const matchTags = student.tags.filter((tag) =>
-              tag.toUpperCase().includes(upperCaseQueryTag)
-            );
-            if (matchTags.length > 0) {
-              return [...res, id];
-            }
-            return res;
-          },
-          []
+        if (oldestKey) {
+          if (oldestKeyRefCount === 0) {
+            delete state.searchNameCache[oldestKey];
+            state.searchNameCacheKeyQueue.shift();
+          } else {
+            state.searchNameCache[oldestKey].refCount = oldestKeyRefCount!;
+          }
+        }
+        state.searchNameCache[upperCaseQueryName] = {
+          studentIds: shouldDisplayStudentIds,
+          refCount: targetKeyRefCount,
+        };
+        state.searchNameCacheKeyQueue.push(upperCaseQueryName);
+
+        state.shouldDisplayStudentIds = shouldDisplayStudentIds;
+        const { nextSlotSize, hasMore } = getNextSlotInfo(
+          shouldDisplayStudentIds.length
+        );
+        state.hasMore = hasMore;
+        state.nextStudentSlotHeadPtr = nextSlotSize;
+        state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
+          0,
+          nextSlotSize
         );
         return;
       }
 
-      const lowerCaseQueryName = query.name.toUpperCase();
-      const matchNameStudentIds = state.studentIds.reduce<string[]>(
-        (res, id) => {
-          if (state.students[id].fullName.includes(lowerCaseQueryName)) {
-            return [...res, id];
+      if (query.name.length === 0) {
+        const upperCaseQueryTag = query.tag.toUpperCase();
+        const {
+          oldestKey,
+          oldestKeyRefCount,
+          targetKeyRefCount,
+          shouldDisplayStudentIds,
+        } = getSearchInfo(
+          state.searchTagCacheKeyQueue,
+          state.searchTagCache,
+          upperCaseQueryTag,
+          getShouldDisplayStudentIdsByTag,
+          state.students,
+          state.studentIds
+        );
+        if (oldestKey) {
+          if (oldestKeyRefCount === 0) {
+            delete state.searchTagCache[oldestKey];
+            state.searchTagCacheKeyQueue.shift();
+          } else {
+            state.searchTagCache[oldestKey].refCount = oldestKeyRefCount!;
           }
-          return res;
-        },
-        []
-      );
+        }
+        state.searchTagCache[upperCaseQueryTag] = {
+          studentIds: shouldDisplayStudentIds,
+          refCount: targetKeyRefCount,
+        };
+        state.searchTagCacheKeyQueue.push(upperCaseQueryTag);
+
+        state.shouldDisplayStudentIds = shouldDisplayStudentIds;
+        const { nextSlotSize, hasMore } = getNextSlotInfo(
+          shouldDisplayStudentIds.length
+        );
+        state.hasMore = hasMore;
+        state.nextStudentSlotHeadPtr = nextSlotSize;
+        state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
+          0,
+          nextSlotSize
+        );
+        return;
+      }
+
+      const upperCaseQueryName = query.name.toUpperCase();
       const upperCaseQueryTag = query.tag.toUpperCase();
-      state.shouldDisplayStudentIds = matchNameStudentIds.reduce<string[]>(
-        (res, id) => {
-          const student = state.students[id];
-          const matchTags = student.tags.filter((tag) =>
-            tag.toUpperCase().includes(upperCaseQueryTag)
-          );
-          if (matchTags.length > 0) {
-            return [...res, id];
-          }
-          return res;
-        },
-        []
+
+      const {
+        oldestKey: nameOldestKey,
+        oldestKeyRefCount: nameOldestKeyRefCount,
+        targetKeyRefCount: nameTrageKeyRefCount,
+        shouldDisplayStudentIds: shouldDisplayNameStudentIds,
+      } = getSearchInfo(
+        state.searchNameCacheKeyQueue,
+        state.searchNameCache,
+        upperCaseQueryName,
+        getShouldDisplayStudentIdsByName,
+        state.students,
+        state.studentIds
+      );
+      if (nameOldestKey) {
+        if (nameOldestKeyRefCount === 0) {
+          delete state.searchNameCache[nameOldestKey];
+          state.searchNameCacheKeyQueue.shift();
+        } else {
+          state.searchNameCache[nameOldestKey].refCount = nameOldestKeyRefCount!;
+        }
+      }
+      state.searchNameCache[upperCaseQueryName] = {
+        studentIds: shouldDisplayNameStudentIds,
+        refCount: nameTrageKeyRefCount,
+      };
+      state.searchNameCacheKeyQueue.push(upperCaseQueryName);
+
+      const {
+        oldestKey: tagOldestKey,
+        oldestKeyRefCount: tagOldestKeyRefCount,
+        targetKeyRefCount: tagTargetKeyRefCount,
+        shouldDisplayStudentIds: shouldDisplayTagStudentIds,
+      } = getSearchInfo(
+        state.searchTagCacheKeyQueue,
+        state.searchTagCache,
+        upperCaseQueryTag,
+        getShouldDisplayStudentIdsByTag,
+        state.students,
+        state.studentIds
+      );
+      if (tagOldestKey) {
+        if (tagOldestKeyRefCount === 0) {
+          delete state.searchTagCache[tagOldestKey];
+          state.searchTagCacheKeyQueue.shift();
+        } else {
+          state.searchTagCache[tagOldestKey].refCount = tagOldestKeyRefCount!;
+        }
+      }
+      state.searchTagCache[upperCaseQueryTag] = {
+        studentIds: shouldDisplayTagStudentIds,
+        refCount: tagTargetKeyRefCount,
+      };
+      state.searchTagCacheKeyQueue.push(upperCaseQueryTag);
+
+      const shouldDisplayNameStudentIdsObj = shouldDisplayNameStudentIds.reduce<
+        Record<string, string>
+      >((res, id) => ({ ...res, [id]: id }), {});
+      const shouldDisplayStudentIds = shouldDisplayTagStudentIds.filter(
+        (id) => !!shouldDisplayNameStudentIdsObj[id]
+      );
+      state.shouldDisplayStudentIds = shouldDisplayStudentIds;
+      const { nextSlotSize, hasMore } = getNextSlotInfo(
+        shouldDisplayStudentIds.length
+      );
+      state.hasMore = hasMore;
+      state.nextStudentSlotHeadPtr = nextSlotSize;
+      state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
+        0,
+        nextSlotSize
       );
     },
     studentTagIsAdded: (
@@ -129,48 +322,57 @@ const studentSlice = createSlice({
       const student = state.students[id];
       if (!student) {
         // TODO: error handling
-        throw new Error("Student not found");
+        throw new Error('Student not found');
       }
       if (tag.length === 0) {
         // TODO: error handling
-        throw new Error("Tag cannot be empty");
+        throw new Error('Tag cannot be empty');
       }
-      student.tags = [...student.tags, tag];
+      if (!new Set(student.tags).has(tag)) {
+        student.tags = [...student.tags, tag];
+        if (state.searchTagCache[tag.toUpperCase()]) {
+          state.searchTagCache[tag.toUpperCase()].studentIds.push(student.id);
+        }
+      }
     },
     shouldDisplayNextStudentSlot: (state) => {
-      let nextSlotSize = state.shouldDisplayStudentIds.length - state.nextStudentSlotHeadPtr;
+      let nextSlotSize =
+        state.shouldDisplayStudentIds.length - state.nextStudentSlotHeadPtr;
       if (nextSlotSize <= 10) {
         state.hasMore = false;
       } else {
         nextSlotSize = 10;
       }
-      state.nextStudentSlotHeadPtr = state.nextStudentSlotHeadPtr + nextSlotSize;
-      state.didDisplayStudentIds = state.shouldDisplayStudentIds.slice(0, state.nextStudentSlotHeadPtr)
-
-    }
+      state.nextStudentSlotHeadPtr += nextSlotSize;
+      state.didDisplayStudentIds = state.shouldDisplayStudentIds.slice(
+        0,
+        state.nextStudentSlotHeadPtr
+      );
+    },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchStudentsRequest.pending, (state) => {
-        state.fetchState = "pending";
+        state.fetchState = 'pending';
       })
       .addCase(fetchStudentsRequest.fulfilled, (state, action) => {
         const students = action.payload;
-        state.fetchState = "idle";
-        const studentRecords: Record<string, IStudentLocal> = students.reduce<Record<string, IStudentLocal>>((res, student) => {
+        state.fetchState = 'idle';
+        const studentRecords: Record<string, IStudentLocal> = students.reduce<
+          Record<string, IStudentLocal>
+        >((res, student) => {
           const studentLocal: IStudentLocal = {
             ...student,
             fullName: `${student.firstName} ${student.lastName}`.toUpperCase(),
             tags: [],
-          }
+          };
           res[student.id] = studentLocal;
           return res;
-        }, {})
+        }, {});
         const studentIds = Object.keys(studentRecords);
         state.students = studentRecords;
         state.studentIds = studentIds;
         state.shouldDisplayStudentIds = studentIds;
-        console.log(studentIds)
         let nextSlotSize = studentIds.length;
         if (nextSlotSize <= 10) {
           state.hasMore = false;
@@ -178,16 +380,17 @@ const studentSlice = createSlice({
           nextSlotSize = 10;
         }
         state.nextStudentSlotHeadPtr = nextSlotSize;
-        state.didDisplayStudentIds = studentIds.slice(0, nextSlotSize)
-        console.log(nextSlotSize, studentIds, studentIds.slice(0, nextSlotSize));
-
+        state.didDisplayStudentIds = studentIds.slice(0, nextSlotSize);
       })
       .addCase(fetchStudentsRequest.rejected, (state, action) => {
-        state.fetchState = "rejected";
-        console.log(action);
+        state.fetchState = 'rejected';
       });
   },
 });
 
-export const { listQueryIsUpdated, studentTagIsAdded, shouldDisplayNextStudentSlot } = studentSlice.actions;
+export const {
+  listQueryIsUpdated,
+  studentTagIsAdded,
+  shouldDisplayNextStudentSlot,
+} = studentSlice.actions;
 export default studentSlice.reducer;

@@ -1,13 +1,13 @@
-import React, { FC, useState } from "react";
-import { useDispatch } from "react-redux";
-import { studentTagIsAdded } from "../features/student/student.slice";
-import { IStudentLocal } from "../interfaces/student";
-import { average } from "../utils/arithmetic";
-import CustomeInput from "./customInput";
-import Grade from "./grade";
-import Tag from "./tag";
-import SubtractIcon from "../icons/subtract";
-import AddIcon from "../icons/add";
+import React, { FC, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { studentTagIsAdded } from '../features/student/student.slice';
+import { IStudentLocal } from '../interfaces/student';
+import { average } from '../utils/arithmetic';
+import CustomeInput from './customInput';
+import Grade from './grade';
+import Tag from './tag';
+import SubtractIcon from '../icons/subtract';
+import AddIcon from '../icons/add';
 
 type StudentProfileProps = {
   student: IStudentLocal;
@@ -28,10 +28,22 @@ const StudentProfile: FC<StudentProfileProps> = ({ student }) => {
       <div className="flex-1">
         <p className=" text-4xl font-bold">{fullName}</p>
         <div className="px-3 pt-3 text-gray-700">
-          <p>Email: {email}</p>
-          <p>Company: {company}</p>
-          <p>Skill: {skill}</p>
-          <p>Average: {`${average(grades)}%`}</p>
+          <p>
+            Email:
+            {email}
+          </p>
+          <p>
+            Company:
+            {company}
+          </p>
+          <p>
+            Skill:
+            {skill}
+          </p>
+          <p>
+            Average:
+            {`${average(grades)}%`}
+          </p>
           {isExpanded && (
             <div className="mt-3">
               {grades.map((grade, i) => (

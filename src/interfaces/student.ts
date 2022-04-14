@@ -18,4 +18,3 @@ export interface IStudentLocal extends IStudent {
 export interface IStudentRespond {
   students: IStudent[];
 }
-

@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
-import StudentProfile from "./components/studentProfile";
-import { useSelector } from "react-redux";
-import { RootState } from "./app/store";
-import { useAppDispatch } from "./app/hooks";
+import React, { useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import InfiniteScroll from 'react-infinite-scroll-component';
+import StudentProfile from './components/studentProfile';
+import { RootState } from './app/store';
+import { useAppDispatch } from './app/hooks';
 import {
   fetchStudentsRequest,
   listQueryIsUpdated,
   shouldDisplayNextStudentSlot,
-} from "./features/student/student.slice";
-import CustomeInput from "./components/customInput";
-import InfiniteScroll from "react-infinite-scroll-component";
+} from './features/student/student.slice';
+import CustomeInput from './components/customInput';
 
 function App() {
   const {
@@ -29,8 +29,8 @@ function App() {
     fetchStudentsHelper();
   }, []);
 
-  if (fetchState === "rejected") return <div>Something went wrong</div>;
-  if (fetchState === "pending") return <div>Loading...</div>;
+  if (fetchState === 'rejected') return <div>Something went wrong</div>;
+  if (fetchState === 'pending') return <div>Loading...</div>;
   return (
     <div className="h-screen bg-gray-250 rounded-4xl py-16 px-36">
       <div
@@ -40,20 +40,19 @@ function App() {
         <CustomeInput
           placeholder="Search by name"
           onChange={(input) => {
-            dispatch(listQueryIsUpdated({ type: "name", value: input }));
+            dispatch(listQueryIsUpdated({ type: 'name', value: input }));
           }}
         />
         <CustomeInput
           placeholder="Search by tag"
           onChange={(input) => {
-            dispatch(listQueryIsUpdated({ type: "tag", value: input }));
+            dispatch(listQueryIsUpdated({ type: 'tag', value: input }));
           }}
         />
 
         <InfiniteScroll
           dataLength={nextStudentSlotHeadPtr}
           next={() => {
-            console.log("next next");
             dispatch(shouldDisplayNextStudentSlot());
           }}
           hasMore={hasMore}
