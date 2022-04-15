@@ -10,7 +10,7 @@ import {
 import type { IStudent, IStudentLocal } from '../../interfaces/student';
 import type { RootState } from '../../app/store';
 
-interface StudentState {
+export interface StudentState {
   fetchState: 'idle' | 'pending' | 'rejected';
   students: Record<string, IStudentLocal>;
   studentIds: string[];
