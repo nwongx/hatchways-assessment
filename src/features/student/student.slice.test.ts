@@ -101,30 +101,27 @@ describe('getShouldDisplayStudentIdsByStudentIds', () => {
     const shouldDisplayTagStudentIds = ['1', '2', '4', '8'];
     const expectedShouldDisplayStudentIds = ['1', '8'];
 
-    expect(getShouldDisplayStudentIdsByStudentIds(
-      shouldDisplayNameStudentIds,
-      shouldDisplayTagStudentIds
-    )).toStrictEqual(expectedShouldDisplayStudentIds);
-  })
+    expect(
+      getShouldDisplayStudentIdsByStudentIds(
+        shouldDisplayNameStudentIds,
+        shouldDisplayTagStudentIds
+      )
+    ).toStrictEqual(expectedShouldDisplayStudentIds);
+  });
 
   test('should return empty string array when at list one of the array is empty', () => {
     const shouldDisplayNameStudentIds = ['1', '8', '14', '20', '25'];
     const shouldDisplayTagStudentIds = ['1', '2', '4', '8'];
 
-    expect(getShouldDisplayStudentIdsByStudentIds(
-      [],
-      [],
-    )).toStrictEqual([]);
-    expect(getShouldDisplayStudentIdsByStudentIds(
-     shouldDisplayNameStudentIds, 
-      [],
-    )).toStrictEqual([]);
-    expect(getShouldDisplayStudentIdsByStudentIds(
-      [],
-      shouldDisplayTagStudentIds,
-    )).toStrictEqual([]);
-  })
-})
+    expect(getShouldDisplayStudentIdsByStudentIds([], [])).toStrictEqual([]);
+    expect(
+      getShouldDisplayStudentIdsByStudentIds(shouldDisplayNameStudentIds, [])
+    ).toStrictEqual([]);
+    expect(
+      getShouldDisplayStudentIdsByStudentIds([], shouldDisplayTagStudentIds)
+    ).toStrictEqual([]);
+  });
+});
 
 describe('getNextSlotInfo', () => {
   test('should return param length and hasMore equal false if param length less than than or equal to 10', () => {
@@ -275,5 +272,3 @@ describe('getSearchInfo', () => {
     expect(mockGetShouldDisplayStudentIds.mock.calls.length).toBe(0);
   });
 });
-
-

@@ -92,7 +92,7 @@ export function getShouldDisplayStudentIdsByTag(
 
 export function getShouldDisplayStudentIdsByStudentIds(
   shouldDisplayNameStudentIds: string[],
-  shouldDisplayTagStudentIds: string[],
+  shouldDisplayTagStudentIds: string[]
 ) {
   const shouldDisplayNameStudentIdsObj = shouldDisplayNameStudentIds.reduce<
     Record<string, string>
