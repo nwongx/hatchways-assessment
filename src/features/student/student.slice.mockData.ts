@@ -1,4 +1,4 @@
-import type { StudentState } from "./student.slice";
+import type { StudentState } from './student.slice';
 
 export const mockState: StudentState = {
   fetchState: 'idle',

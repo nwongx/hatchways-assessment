@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchStudents } from './student.api';
 import {
   getNextSlotInfo,
+  getQuery,
   getSearchInfo,
   getShouldDisplayStudentIdsByName,
   getShouldDisplayStudentIdsByStudentIds,
@@ -68,32 +69,21 @@ const studentSlice = createSlice({
       state,
       action: PayloadAction<{ type: 'name' | 'tag'; value: string }>
     ) => {
-      const query = {
-        name: state.searchName,
-        tag: state.searchTag,
-      };
-      const { type, value } = action.payload;
-      type === 'name' ? (query.name = value) : (query.tag = value);
-      state.searchName = query.name;
-      state.searchTag = query.tag;
-      if (query.tag.length === 0 && query.name.length === 0) {
-        const { studentIds } = state;
-        const { nextSlotSize, hasMore } = getNextSlotInfo(studentIds);
-        state.hasMore = hasMore;
-        state.shouldDisplayStudentIds = studentIds;
-        state.nextStudentSlotHeadPtr = nextSlotSize;
-        state.didDisplayStudentIds = studentIds.slice(0, nextSlotSize);
-        return;
-      }
+      const { name, tag } = getQuery(
+        { name: state.searchName, tag: state.searchTag },
+        action.payload
+      );
 
-      if (query.tag.length === 0) {
-        const upperCaseQueryName = query.name.toUpperCase();
-        const {
-          oldestKey,
-          oldestKeyRefCount,
-          targetKeyRefCount,
-          shouldDisplayStudentIds,
-        } = getSearchInfo(
+      const upperCaseQueryName = name.toUpperCase();
+      const upperCaseQueryTag = tag.toUpperCase();
+      let searchNameInfo,
+        searchTagInfo,
+        shouldDisplayStudentIds,
+        shouldDisplayNameStudentIds,
+        shouldDisplayTagStudentIds;
+
+      if (name.length > 0) {
+        searchNameInfo = getSearchInfo(
           state.searchNameCacheKeyQueue,
           state.searchNameCache,
           upperCaseQueryName,
@@ -101,6 +91,12 @@ const studentSlice = createSlice({
           state.students,
           state.studentIds
         );
+        const {
+          oldestKey,
+          oldestKeyRefCount,
+          targetKeyRefCount,
+          shouldDisplayStudentIds,
+        } = searchNameInfo;
         if (oldestKey) {
           if (oldestKeyRefCount === 0) {
             delete state.searchNameCache[oldestKey];
@@ -114,28 +110,11 @@ const studentSlice = createSlice({
           refCount: targetKeyRefCount,
         };
         state.searchNameCacheKeyQueue.push(upperCaseQueryName);
-
-        state.shouldDisplayStudentIds = shouldDisplayStudentIds;
-        const { nextSlotSize, hasMore } = getNextSlotInfo(
-          shouldDisplayStudentIds
-        );
-        state.hasMore = hasMore;
-        state.nextStudentSlotHeadPtr = nextSlotSize;
-        state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
-          0,
-          nextSlotSize
-        );
-        return;
+        shouldDisplayNameStudentIds = shouldDisplayStudentIds;
       }
 
-      if (query.name.length === 0) {
-        const upperCaseQueryTag = query.tag.toUpperCase();
-        const {
-          oldestKey,
-          oldestKeyRefCount,
-          targetKeyRefCount,
-          shouldDisplayStudentIds,
-        } = getSearchInfo(
+      if (tag.length > 0) {
+        searchTagInfo = getSearchInfo(
           state.searchTagCacheKeyQueue,
           state.searchTagCache,
           upperCaseQueryTag,
@@ -143,6 +122,12 @@ const studentSlice = createSlice({
           state.students,
           state.studentIds
         );
+        const {
+          oldestKey,
+          oldestKeyRefCount,
+          targetKeyRefCount,
+          shouldDisplayStudentIds,
+        } = searchTagInfo;
         if (oldestKey) {
           if (oldestKeyRefCount === 0) {
             delete state.searchTagCache[oldestKey];
@@ -156,82 +141,24 @@ const studentSlice = createSlice({
           refCount: targetKeyRefCount,
         };
         state.searchTagCacheKeyQueue.push(upperCaseQueryTag);
+        shouldDisplayTagStudentIds = shouldDisplayStudentIds;
+      }
 
-        state.shouldDisplayStudentIds = shouldDisplayStudentIds;
-        const { nextSlotSize, hasMore } = getNextSlotInfo(
-          shouldDisplayStudentIds
+      if (searchNameInfo && searchTagInfo) {
+        shouldDisplayStudentIds = getShouldDisplayStudentIdsByStudentIds(
+          searchNameInfo.shouldDisplayStudentIds,
+          searchTagInfo.shouldDisplayStudentIds
         );
-        state.hasMore = hasMore;
-        state.nextStudentSlotHeadPtr = nextSlotSize;
-        state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
-          0,
-          nextSlotSize
-        );
-        return;
+      } else if (shouldDisplayNameStudentIds) {
+        shouldDisplayStudentIds = shouldDisplayNameStudentIds;
+      } else if (shouldDisplayTagStudentIds) {
+        shouldDisplayStudentIds = shouldDisplayTagStudentIds;
+      } else {
+        shouldDisplayStudentIds = state.studentIds;
       }
 
-      const upperCaseQueryName = query.name.toUpperCase();
-      const upperCaseQueryTag = query.tag.toUpperCase();
-
-      const {
-        oldestKey: nameOldestKey,
-        oldestKeyRefCount: nameOldestKeyRefCount,
-        targetKeyRefCount: nameTrageKeyRefCount,
-        shouldDisplayStudentIds: shouldDisplayNameStudentIds,
-      } = getSearchInfo(
-        state.searchNameCacheKeyQueue,
-        state.searchNameCache,
-        upperCaseQueryName,
-        getShouldDisplayStudentIdsByName,
-        state.students,
-        state.studentIds
-      );
-      if (nameOldestKey) {
-        if (nameOldestKeyRefCount === 0) {
-          delete state.searchNameCache[nameOldestKey];
-          state.searchNameCacheKeyQueue.shift();
-        } else {
-          state.searchNameCache[nameOldestKey].refCount =
-            nameOldestKeyRefCount!;
-        }
-      }
-      state.searchNameCache[upperCaseQueryName] = {
-        studentIds: shouldDisplayNameStudentIds,
-        refCount: nameTrageKeyRefCount,
-      };
-      state.searchNameCacheKeyQueue.push(upperCaseQueryName);
-
-      const {
-        oldestKey: tagOldestKey,
-        oldestKeyRefCount: tagOldestKeyRefCount,
-        targetKeyRefCount: tagTargetKeyRefCount,
-        shouldDisplayStudentIds: shouldDisplayTagStudentIds,
-      } = getSearchInfo(
-        state.searchTagCacheKeyQueue,
-        state.searchTagCache,
-        upperCaseQueryTag,
-        getShouldDisplayStudentIdsByTag,
-        state.students,
-        state.studentIds
-      );
-      if (tagOldestKey) {
-        if (tagOldestKeyRefCount === 0) {
-          delete state.searchTagCache[tagOldestKey];
-          state.searchTagCacheKeyQueue.shift();
-        } else {
-          state.searchTagCache[tagOldestKey].refCount = tagOldestKeyRefCount!;
-        }
-      }
-      state.searchTagCache[upperCaseQueryTag] = {
-        studentIds: shouldDisplayTagStudentIds,
-        refCount: tagTargetKeyRefCount,
-      };
-      state.searchTagCacheKeyQueue.push(upperCaseQueryTag);
-
-      const shouldDisplayStudentIds = getShouldDisplayStudentIdsByStudentIds(
-        shouldDisplayNameStudentIds,
-        shouldDisplayTagStudentIds
-      );
+      state.searchName = name;
+      state.searchTag = tag;
       state.shouldDisplayStudentIds = shouldDisplayStudentIds;
       const { nextSlotSize, hasMore } = getNextSlotInfo(
         shouldDisplayStudentIds

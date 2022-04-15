@@ -1,5 +1,21 @@
 import { IStudentLocal } from '../../interfaces/student';
 
+export function getQuery(
+  queryState: { name: string; tag: string },
+  action: { type: 'name' | 'tag'; value: string }
+) {
+  if (action.type === 'name') {
+    return {
+      name: action.value,
+      tag: queryState.tag,
+    };
+  }
+  return {
+    name: queryState.name,
+    tag: action.value,
+  };
+}
+
 export function getNextSlotInfo(ids: string[]) {
   if (ids.length <= 10) {
     return { nextSlotSize: ids.length, hasMore: false };

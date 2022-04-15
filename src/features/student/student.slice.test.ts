@@ -14,7 +14,6 @@ import {
 } from './student.utils';
 import produce from 'immer';
 
-
 test('should return the initial state', () => {
   expect(
     reducer(undefined, {
@@ -277,52 +276,78 @@ describe('getSearchInfo', () => {
 
 describe('reducer', () => {
   const searchNameState = produce(mockState, (draft) => {
-    draft.searchName = 'in',
-      draft.searchNameCache['IN'] = {
+    (draft.searchName = 'in'),
+      (draft.searchNameCache['IN'] = {
         studentIds: ['1', '8', '14', '20', '25'],
-        refCount: 1
-      };
+        refCount: 1,
+      });
     draft.searchNameCacheKeyQueue = ['IN'];
     draft.hasMore = false;
     draft.nextStudentSlotHeadPtr = 5;
     draft.shouldDisplayStudentIds = ['1', '8', '14', '20', '25'];
     draft.didDisplayStudentIds = ['1', '8', '14', '20', '25'];
-  })
+  });
   const searchTagState = produce(mockState, (draft) => {
-    draft.searchTag = 't1',
-      draft.searchTagCache['T1'] = {
+    (draft.searchTag = 't1'),
+      (draft.searchTagCache['T1'] = {
         studentIds: ['1', '3'],
-        refCount: 1
-      };
+        refCount: 1,
+      });
     draft.searchTagCacheKeyQueue = ['T1'];
     draft.hasMore = false;
     draft.nextStudentSlotHeadPtr = 2;
     draft.shouldDisplayStudentIds = ['1', '3'];
     draft.didDisplayStudentIds = ['1', '3'];
-  })
+  });
 
   test('should update searchName related properties and display student Ids', () => {
-    expect(reducer(mockState, listQueryIsUpdated({ type: 'name', value: 'in' }))).toStrictEqual(searchNameState);
-  })
+    expect(
+      reducer(mockState, listQueryIsUpdated({ type: 'name', value: 'in' }))
+    ).toStrictEqual(searchNameState);
+  });
 
   test('should update searchTag related properties and display student Ids', () => {
-    expect(reducer(mockState, listQueryIsUpdated({ type: 'tag', value: 't1' }))).toStrictEqual(searchTagState);
-  })
+    expect(
+      reducer(mockState, listQueryIsUpdated({ type: 'tag', value: 't1' }))
+    ).toStrictEqual(searchTagState);
+  });
 
   test('should update both name and Tag properties and display student ids', () => {
-    const searchNameState = reducer(mockState, listQueryIsUpdated({ type: 'name', value: 'in'}));
+    const searchNameState = reducer(
+      mockState,
+      listQueryIsUpdated({ type: 'name', value: 'in' })
+    );
+    const expectedSearchNameState = produce(mockState, (draft) => {
+      draft.searchName = 'in';
+      draft.searchNameCache['IN'] = {
+        studentIds: ['1', '8', '14', '20', '25'],
+        refCount: 1,
+      };
+      draft.searchNameCacheKeyQueue = ['IN'];
+      draft.hasMore = false;
+      draft.nextStudentSlotHeadPtr = 5;
+      draft.shouldDisplayStudentIds = ['1', '8', '14', '20', '25'];
+      draft.didDisplayStudentIds = ['1', '8', '14', '20', '25'];
+    });
+    expect(searchNameState).toStrictEqual(expectedSearchNameState);
+    const searchState = reducer(
+      searchNameState,
+      listQueryIsUpdated({ type: 'tag', value: 't1' })
+    );
     const expectedState = produce(searchNameState, (draft) => {
-      draft.searchTag = 't1',
-        draft.searchTagCache['T1'] = {
-          studentIds: ['1'],
-          refCount: 1
-        };
+      draft.searchTag = 't1';
+      draft.searchTagCache['T1'] = {
+        studentIds: ['1', '3'],
+        refCount: 1,
+      };
+      draft.searchNameCache['IN'].refCount = 2;
+      draft.searchNameCacheKeyQueue.push('IN');
       draft.searchTagCacheKeyQueue = ['T1'];
       draft.hasMore = false;
       draft.nextStudentSlotHeadPtr = 1;
       draft.shouldDisplayStudentIds = ['1'];
       draft.didDisplayStudentIds = ['1'];
     });
-    expect(reducer(searchNameState, listQueryIsUpdated({ type: 'tag', value: 't1'}))).toStrictEqual(expectedState); 
-  })
-})
+    expect(searchState).toStrictEqual(expectedState);
+  });
+});
