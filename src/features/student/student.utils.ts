@@ -89,3 +89,15 @@ export function getShouldDisplayStudentIdsByTag(
     return res;
   }, []);
 }
+
+export function getShouldDisplayStudentIdsByStudentIds(
+  shouldDisplayNameStudentIds: string[],
+  shouldDisplayTagStudentIds: string[],
+) {
+  const shouldDisplayNameStudentIdsObj = shouldDisplayNameStudentIds.reduce<
+    Record<string, string>
+  >((res, id) => ({ ...res, [id]: id }), {});
+  return shouldDisplayTagStudentIds.filter(
+    (id) => !!shouldDisplayNameStudentIdsObj[id]
+  );
+}

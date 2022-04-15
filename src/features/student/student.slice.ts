@@ -4,6 +4,7 @@ import {
   getNextSlotInfo,
   getSearchInfo,
   getShouldDisplayStudentIdsByName,
+  getShouldDisplayStudentIdsByStudentIds,
   getShouldDisplayStudentIdsByTag,
 } from './student.utils';
 import type { IStudent, IStudentLocal } from '../../interfaces/student';
@@ -227,11 +228,9 @@ const studentSlice = createSlice({
       };
       state.searchTagCacheKeyQueue.push(upperCaseQueryTag);
 
-      const shouldDisplayNameStudentIdsObj = shouldDisplayNameStudentIds.reduce<
-        Record<string, string>
-      >((res, id) => ({ ...res, [id]: id }), {});
-      const shouldDisplayStudentIds = shouldDisplayTagStudentIds.filter(
-        (id) => !!shouldDisplayNameStudentIdsObj[id]
+      const shouldDisplayStudentIds = getShouldDisplayStudentIdsByStudentIds(
+        shouldDisplayNameStudentIds,
+        shouldDisplayTagStudentIds
       );
       state.shouldDisplayStudentIds = shouldDisplayStudentIds;
       const { nextSlotSize, hasMore } = getNextSlotInfo(
