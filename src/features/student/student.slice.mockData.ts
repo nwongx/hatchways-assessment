@@ -386,7 +386,7 @@ export const mockState: StudentState = {
   didDisplayStudentIds: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
   searchName: '',
   searchTag: '',
-  nextStudentSlotHeadPtr: 10,
+  nextStartIndex: 10,
   hasMore: true,
   searchNameCache: {},
   searchNameCacheKeyQueue: [],

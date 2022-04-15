@@ -18,3 +18,19 @@ export interface IStudentLocal extends IStudent {
 export interface IStudentRespond {
   students: IStudent[];
 }
+
+export type SearchQueryActionType = 'name' | 'tag';
+export interface ISearchQueryActionPaylod {
+  type: SearchQueryActionType;
+  value: string;
+}
+
+export interface ICachedQuery {
+  name: string;
+  tag: string;
+}
+
+export interface IPage {
+  size: number;
+  hasMore: boolean;
+}

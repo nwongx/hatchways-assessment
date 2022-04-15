@@ -1,12 +1,12 @@
-import { IStudentLocal } from '../../interfaces/student';
+import { IStudentLocal } from './student.interface';
 import reducer, {
-  listQueryIsUpdated,
+  searchQueryIsUpdated,
   studentTagIsAdded,
-  shouldDisplayNextStudentSlot,
+  pageIsChanged,
 } from './student.slice';
 import { mockState } from './student.slice.mockData';
 import {
-  getNextSlotInfo,
+  getNextPageInfo,
   getSearchInfo,
   getShouldDisplayStudentIdsByName,
   getShouldDisplayStudentIdsByStudentIds,
@@ -27,7 +27,7 @@ test('should return the initial state', () => {
     didDisplayStudentIds: [],
     searchName: '',
     searchTag: '',
-    nextStudentSlotHeadPtr: 0,
+    nextStartIndex: 0,
     hasMore: true,
     searchNameCache: {},
     searchNameCacheKeyQueue: [],
@@ -124,7 +124,7 @@ describe('getShouldDisplayStudentIdsByStudentIds', () => {
   });
 });
 
-describe('getNextSlotInfo', () => {
+describe('getNextPageInfo', () => {
   test('should return param length and hasMore equal false if param length less than than or equal to 10', () => {
     const studentIds = ['1', '2', '3', '4', '5', '6'];
     const studentIdsEdgeCase = [
@@ -139,15 +139,15 @@ describe('getNextSlotInfo', () => {
       '9',
       '10',
     ];
-    const expectedInfo = { nextSlotSize: 6, hasMore: false };
-    const expectedInfoEdgeCase = { nextSlotSize: 10, hasMore: false };
-    expect(getNextSlotInfo(studentIds)).toStrictEqual(expectedInfo);
-    expect(getNextSlotInfo(studentIdsEdgeCase)).toStrictEqual(
+    const expectedInfo = { size: 6, hasMore: false };
+    const expectedInfoEdgeCase = { size: 10, hasMore: false };
+    expect(getNextPageInfo(studentIds)).toStrictEqual(expectedInfo);
+    expect(getNextPageInfo(studentIdsEdgeCase)).toStrictEqual(
       expectedInfoEdgeCase
     );
   });
 
-  test('should return slot size is 10 and hasMore false', () => {
+  test('should return page size is 10 and hasMore false', () => {
     const studentIds = [
       '1',
       '2',
@@ -162,8 +162,8 @@ describe('getNextSlotInfo', () => {
       '11',
       '12',
     ];
-    const expectedInfo = { nextSlotSize: 10, hasMore: true };
-    expect(getNextSlotInfo(studentIds)).toStrictEqual(expectedInfo);
+    const expectedInfo = { size: 10, hasMore: true };
+    expect(getNextPageInfo(studentIds)).toStrictEqual(expectedInfo);
   });
 });
 
@@ -283,7 +283,7 @@ describe('reducer', () => {
       });
     draft.searchNameCacheKeyQueue = ['IN'];
     draft.hasMore = false;
-    draft.nextStudentSlotHeadPtr = 5;
+    draft.nextStartIndex = 5;
     draft.shouldDisplayStudentIds = ['1', '8', '14', '20', '25'];
     draft.didDisplayStudentIds = ['1', '8', '14', '20', '25'];
   });
@@ -295,27 +295,27 @@ describe('reducer', () => {
       });
     draft.searchTagCacheKeyQueue = ['T1'];
     draft.hasMore = false;
-    draft.nextStudentSlotHeadPtr = 2;
+    draft.nextStartIndex = 2;
     draft.shouldDisplayStudentIds = ['1', '3'];
     draft.didDisplayStudentIds = ['1', '3'];
   });
 
   test('should update searchName related properties and display student Ids', () => {
     expect(
-      reducer(mockState, listQueryIsUpdated({ type: 'name', value: 'in' }))
+      reducer(mockState, searchQueryIsUpdated({ type: 'name', value: 'in' }))
     ).toStrictEqual(searchNameState);
   });
 
   test('should update searchTag related properties and display student Ids', () => {
     expect(
-      reducer(mockState, listQueryIsUpdated({ type: 'tag', value: 't1' }))
+      reducer(mockState, searchQueryIsUpdated({ type: 'tag', value: 't1' }))
     ).toStrictEqual(searchTagState);
   });
 
   test('should update both name and Tag properties and display student ids', () => {
     const searchNameState = reducer(
       mockState,
-      listQueryIsUpdated({ type: 'name', value: 'in' })
+      searchQueryIsUpdated({ type: 'name', value: 'in' })
     );
     const expectedSearchNameState = produce(mockState, (draft) => {
       draft.searchName = 'in';
@@ -325,14 +325,14 @@ describe('reducer', () => {
       };
       draft.searchNameCacheKeyQueue = ['IN'];
       draft.hasMore = false;
-      draft.nextStudentSlotHeadPtr = 5;
+      draft.nextStartIndex = 5;
       draft.shouldDisplayStudentIds = ['1', '8', '14', '20', '25'];
       draft.didDisplayStudentIds = ['1', '8', '14', '20', '25'];
     });
     expect(searchNameState).toStrictEqual(expectedSearchNameState);
     const searchState = reducer(
       searchNameState,
-      listQueryIsUpdated({ type: 'tag', value: 't1' })
+      searchQueryIsUpdated({ type: 'tag', value: 't1' })
     );
     const expectedState = produce(searchNameState, (draft) => {
       draft.searchTag = 't1';
@@ -344,7 +344,7 @@ describe('reducer', () => {
       draft.searchNameCacheKeyQueue.push('IN');
       draft.searchTagCacheKeyQueue = ['T1'];
       draft.hasMore = false;
-      draft.nextStudentSlotHeadPtr = 1;
+      draft.nextStartIndex = 1;
       draft.shouldDisplayStudentIds = ['1'];
       draft.didDisplayStudentIds = ['1'];
     });

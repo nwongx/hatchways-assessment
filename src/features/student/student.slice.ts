@@ -1,14 +1,18 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchStudents } from './student.api';
 import {
-  getNextSlotInfo,
+  getNextPageInfo,
   getQuery,
   getSearchInfo,
   getShouldDisplayStudentIdsByName,
   getShouldDisplayStudentIdsByStudentIds,
   getShouldDisplayStudentIdsByTag,
 } from './student.utils';
-import type { IStudent, IStudentLocal } from '../../interfaces/student';
+import type {
+  ISearchQueryActionPaylod,
+  IStudent,
+  IStudentLocal,
+} from './student.interface';
 import type { RootState } from '../../app/store';
 
 export interface StudentState {
@@ -19,7 +23,7 @@ export interface StudentState {
   didDisplayStudentIds: string[];
   searchName: string;
   searchTag: string;
-  nextStudentSlotHeadPtr: number;
+  nextStartIndex: number;
   hasMore: boolean;
   searchNameCache: Record<string, { studentIds: string[]; refCount: number }>;
   searchNameCacheKeyQueue: string[];
@@ -35,7 +39,7 @@ const initialState: StudentState = {
   didDisplayStudentIds: [],
   searchName: '',
   searchTag: '',
-  nextStudentSlotHeadPtr: 0,
+  nextStartIndex: 0,
   hasMore: true,
   searchNameCache: {},
   searchNameCacheKeyQueue: [],
@@ -65,9 +69,9 @@ const studentSlice = createSlice({
   name: 'student',
   initialState,
   reducers: {
-    listQueryIsUpdated: (
+    searchQueryIsUpdated: (
       state,
-      action: PayloadAction<{ type: 'name' | 'tag'; value: string }>
+      action: PayloadAction<ISearchQueryActionPaylod>
     ) => {
       const { name, tag } = getQuery(
         { name: state.searchName, tag: state.searchTag },
@@ -160,15 +164,10 @@ const studentSlice = createSlice({
       state.searchName = name;
       state.searchTag = tag;
       state.shouldDisplayStudentIds = shouldDisplayStudentIds;
-      const { nextSlotSize, hasMore } = getNextSlotInfo(
-        shouldDisplayStudentIds
-      );
+      const { size, hasMore } = getNextPageInfo(shouldDisplayStudentIds);
       state.hasMore = hasMore;
-      state.nextStudentSlotHeadPtr = nextSlotSize;
-      state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
-        0,
-        nextSlotSize
-      );
+      state.nextStartIndex = size;
+      state.didDisplayStudentIds = shouldDisplayStudentIds.slice(0, size);
     },
     studentTagIsAdded: (
       state,
@@ -191,18 +190,18 @@ const studentSlice = createSlice({
         }
       }
     },
-    shouldDisplayNextStudentSlot: (state) => {
-      let nextSlotSize =
-        state.shouldDisplayStudentIds.length - state.nextStudentSlotHeadPtr;
-      if (nextSlotSize <= 10) {
+    pageIsChanged: (state) => {
+      const { shouldDisplayStudentIds, nextStartIndex } = state;
+      let size = shouldDisplayStudentIds.length - nextStartIndex;
+      if (size <= 10) {
         state.hasMore = false;
       } else {
-        nextSlotSize = 10;
+        size = 10;
       }
-      state.nextStudentSlotHeadPtr += nextSlotSize;
-      state.didDisplayStudentIds = state.shouldDisplayStudentIds.slice(
+      state.nextStartIndex += size;
+      state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
         0,
-        state.nextStudentSlotHeadPtr
+        nextStartIndex
       );
     },
   },
@@ -229,14 +228,14 @@ const studentSlice = createSlice({
         state.students = studentRecords;
         state.studentIds = studentIds;
         state.shouldDisplayStudentIds = studentIds;
-        let nextSlotSize = studentIds.length;
-        if (nextSlotSize <= 10) {
+        let pageSize = studentIds.length;
+        if (pageSize <= 10) {
           state.hasMore = false;
         } else {
-          nextSlotSize = 10;
+          pageSize = 10;
         }
-        state.nextStudentSlotHeadPtr = nextSlotSize;
-        state.didDisplayStudentIds = studentIds.slice(0, nextSlotSize);
+        state.nextStartIndex = pageSize;
+        state.didDisplayStudentIds = studentIds.slice(0, pageSize);
       })
       .addCase(fetchStudentsRequest.rejected, (state, action) => {
         state.fetchState = 'rejected';
@@ -244,9 +243,6 @@ const studentSlice = createSlice({
   },
 });
 
-export const {
-  listQueryIsUpdated,
-  studentTagIsAdded,
-  shouldDisplayNextStudentSlot,
-} = studentSlice.actions;
+export const { searchQueryIsUpdated, studentTagIsAdded, pageIsChanged } =
+  studentSlice.actions;
 export default studentSlice.reducer;

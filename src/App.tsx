@@ -6,8 +6,8 @@ import { RootState } from './app/store';
 import { useAppDispatch } from './app/hooks';
 import {
   fetchStudentsRequest,
-  listQueryIsUpdated,
-  shouldDisplayNextStudentSlot,
+  searchQueryIsUpdated,
+  pageIsChanged,
 } from './features/student/student.slice';
 import CustomeInput from './components/customInput';
 
@@ -16,7 +16,7 @@ function App() {
     students,
     didDisplayStudentIds,
     fetchState,
-    nextStudentSlotHeadPtr,
+    nextStartIndex,
     hasMore,
   } = useSelector((state: RootState) => state.student);
   const dispatch = useAppDispatch();
@@ -40,20 +40,20 @@ function App() {
         <CustomeInput
           placeholder="Search by name"
           onChange={(input) => {
-            dispatch(listQueryIsUpdated({ type: 'name', value: input }));
+            dispatch(searchQueryIsUpdated({ type: 'name', value: input }));
           }}
         />
         <CustomeInput
           placeholder="Search by tag"
           onChange={(input) => {
-            dispatch(listQueryIsUpdated({ type: 'tag', value: input }));
+            dispatch(searchQueryIsUpdated({ type: 'tag', value: input }));
           }}
         />
 
         <InfiniteScroll
-          dataLength={nextStudentSlotHeadPtr}
+          dataLength={nextStartIndex}
           next={() => {
-            dispatch(shouldDisplayNextStudentSlot());
+            dispatch(pageIsChanged());
           }}
           hasMore={hasMore}
           loader={<div>Loading...</div>}

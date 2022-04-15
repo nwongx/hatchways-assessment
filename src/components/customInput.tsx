@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import { useAppDispatch, useDidMount } from '../app/hooks';
-import { listQueryIsUpdated } from '../features/student/student.slice';
+import { searchQueryIsUpdated } from '../features/student/student.slice';
 
 type CustomeInputProps = {
   placeholder: string;

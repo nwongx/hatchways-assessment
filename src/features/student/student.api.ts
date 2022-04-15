@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { IStudentRespond } from '../../interfaces/student';
+import { IStudentRespond } from './student.interface';
 
 axios.defaults.baseURL = 'https://api.hatchways.io';
 

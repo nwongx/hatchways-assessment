@@ -1,7 +1,7 @@
 import React, { FC, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { studentTagIsAdded } from '../features/student/student.slice';
-import { IStudentLocal } from '../interfaces/student';
+import { IStudentLocal } from '../features/student/student.interface';
 import { average } from '../utils/arithmetic';
 import CustomeInput from './customInput';
 import Grade from './grade';

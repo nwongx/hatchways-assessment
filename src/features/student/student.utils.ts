@@ -1,26 +1,31 @@
-import { IStudentLocal } from '../../interfaces/student';
+import type {
+  ICachedQuery,
+  IPage,
+  ISearchQueryActionPaylod,
+  IStudentLocal,
+} from './student.interface';
 
 export function getQuery(
-  queryState: { name: string; tag: string },
-  action: { type: 'name' | 'tag'; value: string }
-) {
-  if (action.type === 'name') {
+  cachedQuery: ICachedQuery,
+  actionPayload: ISearchQueryActionPaylod
+): ICachedQuery {
+  if (actionPayload.type === 'name') {
     return {
-      name: action.value,
-      tag: queryState.tag,
+      name: actionPayload.value,
+      tag: cachedQuery.tag,
     };
   }
   return {
-    name: queryState.name,
-    tag: action.value,
+    name: cachedQuery.name,
+    tag: actionPayload.value,
   };
 }
 
-export function getNextSlotInfo(ids: string[]) {
+export function getNextPageInfo(ids: string[]): IPage {
   if (ids.length <= 10) {
-    return { nextSlotSize: ids.length, hasMore: false };
+    return { size: ids.length, hasMore: false };
   }
-  return { nextSlotSize: 10, hasMore: true };
+  return { size: 10, hasMore: true };
 }
 
 export function getSearchInfo(
