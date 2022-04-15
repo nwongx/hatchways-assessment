@@ -1,6 +1,12 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { IStudent, IStudentLocal } from '../../interfaces/student';
 import { fetchStudents } from './student.api';
+import {
+  getNextSlotInfo,
+  getSearchInfo,
+  getShouldDisplayStudentIdsByName,
+  getShouldDisplayStudentIdsByTag,
+} from './student.utils';
+import type { IStudent, IStudentLocal } from '../../interfaces/student';
 import type { RootState } from '../../app/store';
 
 interface StudentState {
@@ -53,83 +59,6 @@ export const fetchStudentsRequest = createAsyncThunk<
   }
 );
 
-function getNextSlotInfo(dataLength: number) {
-  if (dataLength <= 10) {
-    return { nextSlotSize: dataLength, hasMore: false };
-  }
-  return { nextSlotSize: 10, hasMore: true };
-}
-
-function getSearchInfo(
-  searchCacheKeyQueue: string[],
-  searchCache: Record<string, { studentIds: string[]; refCount: number }>,
-  target: string,
-  getShouldDisplayStudentIds: (
-    students: Record<string, IStudentLocal>,
-    studentIds: string[],
-    name: string
-  ) => string[],
-  students: Record<string, IStudentLocal>,
-  studentIds: string[]
-) {
-  let oldestKey: string | undefined;
-  let oldestKeyRefCount: number | undefined;
-  let targetKeyRefCount: number;
-  let shouldDisplayStudentIds: string[];
-  if (searchCacheKeyQueue.length === 100) {
-    //queue is full
-    oldestKey = searchCacheKeyQueue[0];
-    oldestKeyRefCount = searchCache[oldestKey!].refCount - 1;
-  }
-
-  if (searchCache[target]) {
-    //name exists in cache
-    targetKeyRefCount = searchCache[target].refCount + 1;
-    shouldDisplayStudentIds = searchCache[target].studentIds;
-  } else {
-    //name doesn't exist in cache
-    shouldDisplayStudentIds = getShouldDisplayStudentIds(
-      students,
-      studentIds,
-      target
-    );
-    targetKeyRefCount = 1;
-  }
-
-  return {
-    oldestKey,
-    oldestKeyRefCount,
-    targetKeyRefCount,
-    shouldDisplayStudentIds,
-  };
-}
-
-function getShouldDisplayStudentIdsByName(
-  students: Record<string, IStudentLocal>,
-  studentIds: string[],
-  name: string
-): string[] {
-  return studentIds.reduce<string[]>((res, id) => {
-    if (students[id].fullName.includes(name)) {
-      return [...res, id];
-    }
-    return res;
-  }, []);
-}
-
-function getShouldDisplayStudentIdsByTag(
-  students: Record<string, IStudentLocal>,
-  studentIds: string[],
-  tag: string
-): string[] {
-  return studentIds.reduce<string[]>((res, id) => {
-    if (students[id].tags.find((addedTag) => addedTag.toUpperCase().includes(tag))) {
-      return [...res, id];
-    }
-    return res;
-  }, []);
-}
-
 const studentSlice = createSlice({
   name: 'student',
   initialState,
@@ -148,7 +77,7 @@ const studentSlice = createSlice({
       state.searchTag = query.tag;
       if (query.tag.length === 0 && query.name.length === 0) {
         const { studentIds } = state;
-        const { nextSlotSize, hasMore } = getNextSlotInfo(studentIds.length);
+        const { nextSlotSize, hasMore } = getNextSlotInfo(studentIds);
         state.hasMore = hasMore;
         state.shouldDisplayStudentIds = studentIds;
         state.nextStudentSlotHeadPtr = nextSlotSize;
@@ -187,7 +116,7 @@ const studentSlice = createSlice({
 
         state.shouldDisplayStudentIds = shouldDisplayStudentIds;
         const { nextSlotSize, hasMore } = getNextSlotInfo(
-          shouldDisplayStudentIds.length
+          shouldDisplayStudentIds
         );
         state.hasMore = hasMore;
         state.nextStudentSlotHeadPtr = nextSlotSize;
@@ -229,7 +158,7 @@ const studentSlice = createSlice({
 
         state.shouldDisplayStudentIds = shouldDisplayStudentIds;
         const { nextSlotSize, hasMore } = getNextSlotInfo(
-          shouldDisplayStudentIds.length
+          shouldDisplayStudentIds
         );
         state.hasMore = hasMore;
         state.nextStudentSlotHeadPtr = nextSlotSize;
@@ -261,7 +190,8 @@ const studentSlice = createSlice({
           delete state.searchNameCache[nameOldestKey];
           state.searchNameCacheKeyQueue.shift();
         } else {
-          state.searchNameCache[nameOldestKey].refCount = nameOldestKeyRefCount!;
+          state.searchNameCache[nameOldestKey].refCount =
+            nameOldestKeyRefCount!;
         }
       }
       state.searchNameCache[upperCaseQueryName] = {
@@ -305,7 +235,7 @@ const studentSlice = createSlice({
       );
       state.shouldDisplayStudentIds = shouldDisplayStudentIds;
       const { nextSlotSize, hasMore } = getNextSlotInfo(
-        shouldDisplayStudentIds.length
+        shouldDisplayStudentIds
       );
       state.hasMore = hasMore;
       state.nextStudentSlotHeadPtr = nextSlotSize;
