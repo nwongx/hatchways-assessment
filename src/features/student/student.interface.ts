@@ -27,6 +27,11 @@ export interface IQueryActionPaylod {
   value: string;
 }
 
+export interface IAddTagActionPayload {
+  id: StudentId,
+  tag: string;
+}
+
 export interface ICachedMixQuery {
   name: string;
   tag: string;
@@ -44,3 +49,7 @@ export interface ICachedQueryRes {
 
 export type StudentRecord = Record<StudentId, IStudentLocal>;
 export type CachedQueryRecord = Record<string, ICachedQueryRes>;
+
+export type FetchState = 'idle' | 'pending' | 'rejected';
+
+export type GetShouldDisplayIdsFN = (students: StudentRecord, ids: StudentId[], query: string) => StudentId[];

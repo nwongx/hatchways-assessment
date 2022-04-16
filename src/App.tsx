@@ -14,7 +14,7 @@ import CustomeInput from './components/customInput';
 function App() {
   const {
     students,
-    didDisplayStudentIds,
+    didDisplayIds,
     fetchState,
     nextStartIndex,
     hasMore,
@@ -59,7 +59,7 @@ function App() {
           loader={<div>Loading...</div>}
           scrollableTarget="scrollableDiv"
         >
-          {didDisplayStudentIds.map((id) => (
+          {didDisplayIds.map((id) => (
             <StudentProfile key={id} student={students[id]} />
           ))}
         </InfiniteScroll>

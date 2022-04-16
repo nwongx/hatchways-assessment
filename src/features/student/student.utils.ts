@@ -5,9 +5,10 @@ import type {
   CachedQueryRecord,
   StudentId,
   StudentRecord,
+  GetShouldDisplayIdsFN,
 } from './student.interface';
 
-export function getQuery(
+export function getMixQuery(
   prevQuery: ICachedMixQuery,
   actionPayload: IQueryActionPaylod
 ): ICachedMixQuery {
@@ -30,15 +31,11 @@ export function getNextPageInfo(ids: StudentId[]): IPage {
   return { size: 10, hasMore: true };
 }
 
-export function getSearchInfo(
-  searchCacheKeyQueue: string[],
-  searchCache: CachedQueryRecord,
+export function getQueryInfo(
+  queryCacheQueue: string[],
+  queryCache: CachedQueryRecord,
   query: string,
-  getShouldDisplayIds: (
-    students: StudentRecord,
-    ids: StudentId[],
-    name: string
-  ) => StudentId[],
+  getShouldDisplayIds: GetShouldDisplayIdsFN,
   students: StudentRecord,
   ids: StudentId[]
 ) {
@@ -46,22 +43,22 @@ export function getSearchInfo(
   let oldestQueryRefCount: number | undefined;
   let queryRefCount: number;
   let shouldDisplayIds: StudentId[];
-  if (searchCacheKeyQueue.length === 100) {
+  if (queryCacheQueue.length === 100) {
     //queue is full
-    oldestQuery = searchCacheKeyQueue[0];
-    oldestQueryRefCount = searchCache[oldestQuery!].refCount - 1;
+    oldestQuery = queryCacheQueue[0];
+    oldestQueryRefCount = queryCache[oldestQuery!].refCount - 1;
   }
-  query = query.toUpperCase();
-  if (searchCache[query]) {
+  const upperCaseQuery = query.toUpperCase();
+  if (queryCache[upperCaseQuery]) {
     //name exists in cache
     queryRefCount =
-      oldestQuery === query
-        ? searchCache[query].refCount
-        : searchCache[query].refCount + 1;
-    shouldDisplayIds = searchCache[query].ids;
+      oldestQuery === upperCaseQuery
+        ? queryCache[upperCaseQuery].refCount
+        : queryCache[upperCaseQuery].refCount + 1;
+    shouldDisplayIds = queryCache[upperCaseQuery].ids;
   } else {
     //name doesn't exist in cache
-    shouldDisplayIds = getShouldDisplayIds(students, ids, query);
+    shouldDisplayIds = getShouldDisplayIds(students, ids, upperCaseQuery);
     queryRefCount = 1;
   }
 
@@ -114,7 +111,7 @@ export function getShouldDisplayIdsByIds(
   shouldDisplayTagIds: StudentId[]
 ) {
   const shouldDisplayNameIdsObj = shouldDisplayNameIds.reduce<
-    Record<string, string>
+    Record<StudentId, StudentId>
   >((res, id) => ({ ...res, [id]: id }), {});
   return shouldDisplayTagIds.filter((id) => !!shouldDisplayNameIdsObj[id]);
 }

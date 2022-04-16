@@ -2,8 +2,8 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchStudents } from './student.api';
 import {
   getNextPageInfo,
-  getQuery,
-  getSearchInfo,
+  getMixQuery,
+  getQueryInfo,
   getShouldDisplayIdsByName,
   getShouldDisplayIdsByIds,
   getShouldDisplayIdsByTag,
@@ -15,11 +15,13 @@ import type {
   CachedQueryRecord,
   StudentId,
   StudentRecord,
+  FetchState,
+  IAddTagActionPayload,
 } from './student.interface';
 import type { RootState } from '../../app/store';
 
 export interface StudentState {
-  fetchState: 'idle' | 'pending' | 'rejected';
+  fetchState: FetchState;
   students: StudentRecord;
   ids: StudentId[];
   shouldDisplayIds: StudentId[];
@@ -73,13 +75,13 @@ const studentSlice = createSlice({
   initialState,
   reducers: {
     queryIsUpdated: (state, action: PayloadAction<IQueryActionPaylod>) => {
-      const { name, tag } = getQuery(
+      const { name, tag } = getMixQuery(
         { name: state.nameQuery, tag: state.tagQuery },
         action.payload
       );
 
-      const upperCaseQueryName = name.toUpperCase();
-      const upperCaseQueryTag = tag.toUpperCase();
+      const upperCaseNameQuery = name.toUpperCase();
+      const upperCaseTagQuery = tag.toUpperCase();
       let nameQueryInfo,
         tagQueryInfo,
         shouldDisplayIds,
@@ -87,10 +89,10 @@ const studentSlice = createSlice({
         shouldDisplayTagIds;
 
       if (name.length > 0) {
-        nameQueryInfo = getSearchInfo(
+        nameQueryInfo = getQueryInfo(
           state.nameQueryCacheQueue,
           state.nameQueryCache,
-          upperCaseQueryName,
+          upperCaseNameQuery,
           getShouldDisplayIdsByName,
           state.students,
           state.ids
@@ -109,19 +111,19 @@ const studentSlice = createSlice({
             state.nameQueryCache[oldestQuery].refCount = oldestQueryRefCount!;
           }
         }
-        state.nameQueryCache[upperCaseQueryName] = {
+        state.nameQueryCache[upperCaseNameQuery] = {
           ids: shouldDisplayIds,
           refCount: queryRefCount,
         };
-        state.nameQueryCacheQueue.push(upperCaseQueryName);
+        state.nameQueryCacheQueue.push(upperCaseNameQuery);
         shouldDisplayNameIds = shouldDisplayIds;
       }
 
       if (tag.length > 0) {
-        tagQueryInfo = getSearchInfo(
+        tagQueryInfo = getQueryInfo(
           state.tagQueryCacheQueue,
           state.tagQueryCache,
-          upperCaseQueryTag,
+          upperCaseTagQuery,
           getShouldDisplayIdsByTag,
           state.students,
           state.ids
@@ -140,11 +142,11 @@ const studentSlice = createSlice({
             state.tagQueryCache[oldestQuery].refCount = oldestQueryRefCount!;
           }
         }
-        state.tagQueryCache[upperCaseQueryTag] = {
+        state.tagQueryCache[upperCaseTagQuery] = {
           ids: shouldDisplayIds,
           refCount: queryRefCount,
         };
-        state.tagQueryCacheQueue.push(upperCaseQueryTag);
+        state.tagQueryCacheQueue.push(upperCaseTagQuery);
         shouldDisplayTagIds = shouldDisplayIds;
       }
 
@@ -171,7 +173,7 @@ const studentSlice = createSlice({
     },
     studentTagIsAdded: (
       state,
-      action: PayloadAction<{ id: string; tag: string }>
+      action: PayloadAction<IAddTagActionPayload>
     ) => {
       const { id, tag } = action.payload;
       const student = state.students[id];
@@ -203,8 +205,8 @@ const studentSlice = createSlice({
       .addCase(fetchStudentsRequest.fulfilled, (state, action) => {
         const students = action.payload;
         state.fetchState = 'idle';
-        const studentRecords: Record<string, IStudentLocal> = students.reduce<
-          Record<string, IStudentLocal>
+        const studentRecords: StudentRecord = students.reduce<
+         StudentRecord 
         >((res, student) => {
           const studentLocal: IStudentLocal = {
             ...student,
