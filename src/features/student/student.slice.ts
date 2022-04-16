@@ -4,39 +4,42 @@ import {
   getNextPageInfo,
   getQuery,
   getSearchInfo,
-  getShouldDisplayStudentIdsByName,
-  getShouldDisplayStudentIdsByStudentIds,
-  getShouldDisplayStudentIdsByTag,
+  getShouldDisplayIdsByName,
+  getShouldDisplayIdsByIds,
+  getShouldDisplayIdsByTag,
 } from './student.utils';
 import type {
-  ISearchQueryActionPaylod,
+  IQueryActionPaylod,
   IStudent,
   IStudentLocal,
+  CachedQueryRecord,
+  StudentId,
+  StudentRecord,
 } from './student.interface';
 import type { RootState } from '../../app/store';
 
 export interface StudentState {
   fetchState: 'idle' | 'pending' | 'rejected';
-  students: Record<string, IStudentLocal>;
-  studentIds: string[];
-  shouldDisplayStudentIds: string[];
-  didDisplayStudentIds: string[];
+  students: StudentRecord;
+  ids: StudentId[];
+  shouldDisplayIds: StudentId[];
+  didDisplayIds: StudentId[];
   searchName: string;
   searchTag: string;
   nextStartIndex: number;
   hasMore: boolean;
-  searchNameCache: Record<string, { studentIds: string[]; refCount: number }>;
+  searchNameCache: CachedQueryRecord;
   searchNameCacheKeyQueue: string[];
-  searchTagCache: Record<string, { studentIds: string[]; refCount: number }>;
+  searchTagCache: CachedQueryRecord;
   searchTagCacheKeyQueue: string[];
 }
 
 const initialState: StudentState = {
   fetchState: 'idle',
   students: {},
-  studentIds: [],
-  shouldDisplayStudentIds: [],
-  didDisplayStudentIds: [],
+  ids: [],
+  shouldDisplayIds: [],
+  didDisplayIds: [],
   searchName: '',
   searchTag: '',
   nextStartIndex: 0,
@@ -69,10 +72,7 @@ const studentSlice = createSlice({
   name: 'student',
   initialState,
   reducers: {
-    searchQueryIsUpdated: (
-      state,
-      action: PayloadAction<ISearchQueryActionPaylod>
-    ) => {
+    queryIsUpdated: (state, action: PayloadAction<IQueryActionPaylod>) => {
       const { name, tag } = getQuery(
         { name: state.searchName, tag: state.searchTag },
         action.payload
@@ -82,39 +82,39 @@ const studentSlice = createSlice({
       const upperCaseQueryTag = tag.toUpperCase();
       let searchNameInfo,
         searchTagInfo,
-        shouldDisplayStudentIds,
-        shouldDisplayNameStudentIds,
-        shouldDisplayTagStudentIds;
+        shouldDisplayIds,
+        shouldDisplayNameIds,
+        shouldDisplayTagIds;
 
       if (name.length > 0) {
         searchNameInfo = getSearchInfo(
           state.searchNameCacheKeyQueue,
           state.searchNameCache,
           upperCaseQueryName,
-          getShouldDisplayStudentIdsByName,
+          getShouldDisplayIdsByName,
           state.students,
-          state.studentIds
+          state.ids
         );
         const {
-          oldestKey,
-          oldestKeyRefCount,
-          targetKeyRefCount,
-          shouldDisplayStudentIds,
+          oldestQuery,
+          oldestQueryRefCount,
+          queryRefCount,
+          shouldDisplayIds,
         } = searchNameInfo;
-        if (oldestKey) {
-          if (oldestKeyRefCount === 0) {
-            delete state.searchNameCache[oldestKey];
+        if (oldestQuery) {
+          if (oldestQueryRefCount === 0) {
+            delete state.searchNameCache[oldestQuery];
             state.searchNameCacheKeyQueue.shift();
           } else {
-            state.searchNameCache[oldestKey].refCount = oldestKeyRefCount!;
+            state.searchNameCache[oldestQuery].refCount = oldestQueryRefCount!;
           }
         }
         state.searchNameCache[upperCaseQueryName] = {
-          studentIds: shouldDisplayStudentIds,
-          refCount: targetKeyRefCount,
+          ids: shouldDisplayIds,
+          refCount: queryRefCount,
         };
         state.searchNameCacheKeyQueue.push(upperCaseQueryName);
-        shouldDisplayNameStudentIds = shouldDisplayStudentIds;
+        shouldDisplayNameIds = shouldDisplayIds;
       }
 
       if (tag.length > 0) {
@@ -122,52 +122,52 @@ const studentSlice = createSlice({
           state.searchTagCacheKeyQueue,
           state.searchTagCache,
           upperCaseQueryTag,
-          getShouldDisplayStudentIdsByTag,
+          getShouldDisplayIdsByTag,
           state.students,
-          state.studentIds
+          state.ids
         );
         const {
-          oldestKey,
-          oldestKeyRefCount,
-          targetKeyRefCount,
-          shouldDisplayStudentIds,
+          oldestQuery,
+          oldestQueryRefCount,
+          queryRefCount,
+          shouldDisplayIds,
         } = searchTagInfo;
-        if (oldestKey) {
-          if (oldestKeyRefCount === 0) {
-            delete state.searchTagCache[oldestKey];
+        if (oldestQuery) {
+          if (oldestQueryRefCount === 0) {
+            delete state.searchTagCache[oldestQuery];
             state.searchTagCacheKeyQueue.shift();
           } else {
-            state.searchTagCache[oldestKey].refCount = oldestKeyRefCount!;
+            state.searchTagCache[oldestQuery].refCount = oldestQueryRefCount!;
           }
         }
         state.searchTagCache[upperCaseQueryTag] = {
-          studentIds: shouldDisplayStudentIds,
-          refCount: targetKeyRefCount,
+          ids: shouldDisplayIds,
+          refCount: queryRefCount,
         };
         state.searchTagCacheKeyQueue.push(upperCaseQueryTag);
-        shouldDisplayTagStudentIds = shouldDisplayStudentIds;
+        shouldDisplayTagIds = shouldDisplayIds;
       }
 
       if (searchNameInfo && searchTagInfo) {
-        shouldDisplayStudentIds = getShouldDisplayStudentIdsByStudentIds(
-          searchNameInfo.shouldDisplayStudentIds,
-          searchTagInfo.shouldDisplayStudentIds
+        shouldDisplayIds = getShouldDisplayIdsByIds(
+          searchNameInfo.shouldDisplayIds,
+          searchTagInfo.shouldDisplayIds
         );
-      } else if (shouldDisplayNameStudentIds) {
-        shouldDisplayStudentIds = shouldDisplayNameStudentIds;
-      } else if (shouldDisplayTagStudentIds) {
-        shouldDisplayStudentIds = shouldDisplayTagStudentIds;
+      } else if (shouldDisplayNameIds) {
+        shouldDisplayIds = shouldDisplayNameIds;
+      } else if (shouldDisplayTagIds) {
+        shouldDisplayIds = shouldDisplayTagIds;
       } else {
-        shouldDisplayStudentIds = state.studentIds;
+        shouldDisplayIds = state.ids;
       }
 
       state.searchName = name;
       state.searchTag = tag;
-      state.shouldDisplayStudentIds = shouldDisplayStudentIds;
-      const { size, hasMore } = getNextPageInfo(shouldDisplayStudentIds);
+      state.shouldDisplayIds = shouldDisplayIds;
+      const { size, hasMore } = getNextPageInfo(shouldDisplayIds);
       state.hasMore = hasMore;
       state.nextStartIndex = size;
-      state.didDisplayStudentIds = shouldDisplayStudentIds.slice(0, size);
+      state.didDisplayIds = shouldDisplayIds.slice(0, size);
     },
     studentTagIsAdded: (
       state,
@@ -179,22 +179,19 @@ const studentSlice = createSlice({
       if (!new Set(student.tags).has(tag)) {
         student.tags = [...student.tags, tag];
         if (state.searchTagCache[tag.toUpperCase()]) {
-          state.searchTagCache[tag.toUpperCase()].studentIds.push(student.id);
+          state.searchTagCache[tag.toUpperCase()].ids.push(student.id);
         }
       }
     },
     pageIsChanged: (state) => {
-      const { shouldDisplayStudentIds, nextStartIndex } = state;
-      let size = shouldDisplayStudentIds.length - nextStartIndex;
+      const { shouldDisplayIds, nextStartIndex } = state;
+      let size = shouldDisplayIds.length - nextStartIndex;
       if (size <= 10) {
         state.hasMore = false;
       } else {
         size = 10;
       }
-      state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
-        0,
-        nextStartIndex + size
-      );
+      state.didDisplayIds = shouldDisplayIds.slice(0, nextStartIndex + size);
       state.nextStartIndex += size;
     },
   },
@@ -217,18 +214,18 @@ const studentSlice = createSlice({
           res[student.id] = studentLocal;
           return res;
         }, {});
-        const studentIds = Object.keys(studentRecords);
+        const ids = Object.keys(studentRecords);
         state.students = studentRecords;
-        state.studentIds = studentIds;
-        state.shouldDisplayStudentIds = studentIds;
-        let pageSize = studentIds.length;
+        state.ids = ids;
+        state.shouldDisplayIds = ids;
+        let pageSize = ids.length;
         if (pageSize <= 10) {
           state.hasMore = false;
         } else {
           pageSize = 10;
         }
         state.nextStartIndex = pageSize;
-        state.didDisplayStudentIds = studentIds.slice(0, pageSize);
+        state.didDisplayIds = ids.slice(0, pageSize);
       })
       .addCase(fetchStudentsRequest.rejected, (state, action) => {
         state.fetchState = 'rejected';
@@ -236,6 +233,6 @@ const studentSlice = createSlice({
   },
 });
 
-export const { searchQueryIsUpdated, studentTagIsAdded, pageIsChanged } =
+export const { queryIsUpdated, studentTagIsAdded, pageIsChanged } =
   studentSlice.actions;
 export default studentSlice.reducer;

@@ -1,27 +1,29 @@
 import type {
-  ICachedQuery,
+  ICachedMixQuery,
   IPage,
-  ISearchQueryActionPaylod,
-  IStudentLocal,
+  IQueryActionPaylod,
+  CachedQueryRecord,
+  StudentId,
+  StudentRecord,
 } from './student.interface';
 
 export function getQuery(
-  cachedQuery: ICachedQuery,
-  actionPayload: ISearchQueryActionPaylod
-): ICachedQuery {
+  prevQuery: ICachedMixQuery,
+  actionPayload: IQueryActionPaylod
+): ICachedMixQuery {
   if (actionPayload.type === 'name') {
     return {
       name: actionPayload.value,
-      tag: cachedQuery.tag,
+      tag: prevQuery.tag,
     };
   }
   return {
-    name: cachedQuery.name,
+    name: prevQuery.name,
     tag: actionPayload.value,
   };
 }
 
-export function getNextPageInfo(ids: string[]): IPage {
+export function getNextPageInfo(ids: StudentId[]): IPage {
   if (ids.length <= 10) {
     return { size: ids.length, hasMore: false };
   }
@@ -30,60 +32,56 @@ export function getNextPageInfo(ids: string[]): IPage {
 
 export function getSearchInfo(
   searchCacheKeyQueue: string[],
-  searchCache: Record<string, { studentIds: string[]; refCount: number }>,
-  target: string,
-  getShouldDisplayStudentIds: (
-    students: Record<string, IStudentLocal>,
-    studentIds: string[],
+  searchCache: CachedQueryRecord,
+  query: string,
+  getShouldDisplayIds: (
+    students: StudentRecord,
+    ids: StudentId[],
     name: string
-  ) => string[],
-  students: Record<string, IStudentLocal>,
-  studentIds: string[]
+  ) => StudentId[],
+  students: StudentRecord,
+  ids: StudentId[]
 ) {
-  let oldestKey: string | undefined;
-  let oldestKeyRefCount: number | undefined;
-  let targetKeyRefCount: number;
-  let shouldDisplayStudentIds: string[];
+  let oldestQuery: string | undefined;
+  let oldestQueryRefCount: number | undefined;
+  let queryRefCount: number;
+  let shouldDisplayIds: StudentId[];
   if (searchCacheKeyQueue.length === 100) {
     //queue is full
-    oldestKey = searchCacheKeyQueue[0];
-    oldestKeyRefCount = searchCache[oldestKey!].refCount - 1;
+    oldestQuery = searchCacheKeyQueue[0];
+    oldestQueryRefCount = searchCache[oldestQuery!].refCount - 1;
   }
-  target = target.toUpperCase();
-  if (searchCache[target]) {
+  query = query.toUpperCase();
+  if (searchCache[query]) {
     //name exists in cache
-    targetKeyRefCount =
-      oldestKey === target
-        ? searchCache[target].refCount
-        : searchCache[target].refCount + 1;
-    shouldDisplayStudentIds = searchCache[target].studentIds;
+    queryRefCount =
+      oldestQuery === query
+        ? searchCache[query].refCount
+        : searchCache[query].refCount + 1;
+    shouldDisplayIds = searchCache[query].ids;
   } else {
     //name doesn't exist in cache
-    shouldDisplayStudentIds = getShouldDisplayStudentIds(
-      students,
-      studentIds,
-      target
-    );
-    targetKeyRefCount = 1;
+    shouldDisplayIds = getShouldDisplayIds(students, ids, query);
+    queryRefCount = 1;
   }
 
   return {
-    oldestKey,
-    oldestKeyRefCount,
-    targetKeyRefCount,
-    shouldDisplayStudentIds,
+    oldestQuery,
+    oldestQueryRefCount,
+    queryRefCount,
+    shouldDisplayIds,
   };
 }
 
-export function getShouldDisplayStudentIdsByName(
-  students: Record<string, IStudentLocal>,
-  studentIds: string[],
+export function getShouldDisplayIdsByName(
+  students: StudentRecord,
+  ids: StudentId[],
   name: string
-): string[] {
+): StudentId[] {
   if (!name || name.length === 0) {
-    return studentIds;
+    return ids;
   }
-  return studentIds.reduce<string[]>((res, id) => {
+  return ids.reduce<StudentId[]>((res, id) => {
     if (students[id].fullName.includes(name.toUpperCase())) {
       return [...res, id];
     }
@@ -91,15 +89,15 @@ export function getShouldDisplayStudentIdsByName(
   }, []);
 }
 
-export function getShouldDisplayStudentIdsByTag(
-  students: Record<string, IStudentLocal>,
-  studentIds: string[],
+export function getShouldDisplayIdsByTag(
+  students: StudentRecord,
+  ids: StudentId[],
   tag: string
-): string[] {
+): StudentId[] {
   if (!tag || tag.length === 0) {
-    return studentIds;
+    return ids;
   }
-  return studentIds.reduce<string[]>((res, id) => {
+  return ids.reduce<StudentId[]>((res, id) => {
     if (
       students[id].tags.find((addedTag) =>
         addedTag.toUpperCase().includes(tag.toUpperCase())
@@ -111,14 +109,12 @@ export function getShouldDisplayStudentIdsByTag(
   }, []);
 }
 
-export function getShouldDisplayStudentIdsByStudentIds(
-  shouldDisplayNameStudentIds: string[],
-  shouldDisplayTagStudentIds: string[]
+export function getShouldDisplayIdsByIds(
+  shouldDisplayNameIds: StudentId[],
+  shouldDisplayTagIds: StudentId[]
 ) {
-  const shouldDisplayNameStudentIdsObj = shouldDisplayNameStudentIds.reduce<
+  const shouldDisplayNameIdsObj = shouldDisplayNameIds.reduce<
     Record<string, string>
   >((res, id) => ({ ...res, [id]: id }), {});
-  return shouldDisplayTagStudentIds.filter(
-    (id) => !!shouldDisplayNameStudentIdsObj[id]
-  );
+  return shouldDisplayTagIds.filter((id) => !!shouldDisplayNameIdsObj[id]);
 }

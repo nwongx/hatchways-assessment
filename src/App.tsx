@@ -6,7 +6,7 @@ import { RootState } from './app/store';
 import { useAppDispatch } from './app/hooks';
 import {
   fetchStudentsRequest,
-  searchQueryIsUpdated,
+  queryIsUpdated,
   pageIsChanged,
 } from './features/student/student.slice';
 import CustomeInput from './components/customInput';
@@ -40,13 +40,13 @@ function App() {
         <CustomeInput
           placeholder="Search by name"
           onChange={(input) => {
-            dispatch(searchQueryIsUpdated({ type: 'name', value: input }));
+            dispatch(queryIsUpdated({ type: 'name', value: input }));
           }}
         />
         <CustomeInput
           placeholder="Search by tag"
           onChange={(input) => {
-            dispatch(searchQueryIsUpdated({ type: 'tag', value: input }));
+            dispatch(queryIsUpdated({ type: 'tag', value: input }));
           }}
         />
 

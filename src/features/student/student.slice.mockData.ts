@@ -329,7 +329,7 @@ export const mockState: StudentState = {
       tags: [],
     },
   },
-  studentIds: [
+  ids: [
     '1',
     '2',
     '3',
@@ -356,7 +356,7 @@ export const mockState: StudentState = {
     '24',
     '25',
   ],
-  shouldDisplayStudentIds: [
+  shouldDisplayIds: [
     '1',
     '2',
     '3',
@@ -383,7 +383,7 @@ export const mockState: StudentState = {
     '24',
     '25',
   ],
-  didDisplayStudentIds: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+  didDisplayIds: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
   searchName: '',
   searchTag: '',
   nextStartIndex: 10,

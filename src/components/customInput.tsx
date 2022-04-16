@@ -1,12 +1,5 @@
-import React, {
-  ChangeEventHandler,
-  FC,
-  KeyboardEventHandler,
-  useEffect,
-  useState,
-} from 'react';
-import { useAppDispatch, useDidMount } from '../app/hooks';
-import { searchQueryIsUpdated } from '../features/student/student.slice';
+import React, { FC, useEffect, useState } from 'react';
+import { useDidMount } from '../app/hooks';
 
 type CustomeInputProps = {
   placeholder: string;
@@ -24,7 +17,6 @@ const CustomeInput: FC<CustomeInputProps> = ({
   const [input, setInput] = useState<string>('');
   const [keyUp, setKeyUp] = useState<string>('');
   const isDidMount = useDidMount();
-  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (isDidMount && onChange) {

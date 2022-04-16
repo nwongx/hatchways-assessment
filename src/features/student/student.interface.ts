@@ -19,13 +19,15 @@ export interface IStudentRespond {
   students: IStudent[];
 }
 
-export type SearchQueryActionType = 'name' | 'tag';
-export interface ISearchQueryActionPaylod {
-  type: SearchQueryActionType;
+export type StudentId = string;
+
+export type QueryType = 'name' | 'tag';
+export interface IQueryActionPaylod {
+  type: QueryType;
   value: string;
 }
 
-export interface ICachedQuery {
+export interface ICachedMixQuery {
   name: string;
   tag: string;
 }
@@ -34,3 +36,11 @@ export interface IPage {
   size: number;
   hasMore: boolean;
 }
+
+export interface ICachedQueryRes {
+  ids: StudentId[];
+  refCount: number;
+}
+
+export type StudentRecord = Record<StudentId, IStudentLocal>;
+export type CachedQueryRecord = Record<string, ICachedQueryRes>;
