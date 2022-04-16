@@ -175,14 +175,7 @@ const studentSlice = createSlice({
     ) => {
       const { id, tag } = action.payload;
       const student = state.students[id];
-      if (!student) {
-        // TODO: error handling
-        throw new Error('Student not found');
-      }
-      if (tag.length === 0) {
-        // TODO: error handling
-        throw new Error('Tag cannot be empty');
-      }
+
       if (!new Set(student.tags).has(tag)) {
         student.tags = [...student.tags, tag];
         if (state.searchTagCache[tag.toUpperCase()]) {
@@ -198,11 +191,11 @@ const studentSlice = createSlice({
       } else {
         size = 10;
       }
-      state.nextStartIndex += size;
       state.didDisplayStudentIds = shouldDisplayStudentIds.slice(
         0,
-        nextStartIndex
+        nextStartIndex + size
       );
+      state.nextStartIndex += size;
     },
   },
   extraReducers: (builder) => {

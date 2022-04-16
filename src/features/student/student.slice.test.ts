@@ -350,4 +350,62 @@ describe('reducer', () => {
     });
     expect(searchState).toStrictEqual(expectedState);
   });
+
+  test('should update student tags array and tag cache array', () => {
+    const mockStateWithSearchTagCache = produce(mockState, (draft) => {
+      draft.searchTagCache = {
+        T: {
+          studentIds: ['1', '2', '3', '4', '5'],
+          refCount: 1,
+        },
+        T1: {
+          studentIds: ['1', '3'],
+          refCount: 1,
+        },
+      };
+      draft.searchTagCacheKeyQueue = ['T', 'T1'];
+    });
+    const expectedStateWithSearchTagCache = produce(
+      mockStateWithSearchTagCache,
+      (draft) => {
+        draft.students[5].tags.push('t1');
+        draft.searchTagCache['T1'].studentIds.push(draft.students[5].id);
+      }
+    );
+    const expectedState = produce(mockStateWithSearchTagCache, (draft) => {
+      draft.students[5].tags.push('mock');
+    });
+    expect(
+      reducer(
+        mockStateWithSearchTagCache,
+        studentTagIsAdded({ id: '5', tag: 't1' })
+      )
+    ).toStrictEqual(expectedStateWithSearchTagCache);
+    expect(
+      reducer(
+        mockStateWithSearchTagCache,
+        studentTagIsAdded({ id: '5', tag: 'mock' })
+      )
+    ).toStrictEqual(expectedState);
+  });
+
+  test('should update didDisplayStudentIds', () => {
+    const expectedState = produce(mockState, (draft) => {
+      draft.didDisplayStudentIds = mockState.shouldDisplayStudentIds.slice(
+        0,
+        20
+      );
+      draft.hasMore = true;
+      draft.nextStartIndex = 20;
+    });
+    const expectedStateSecondPage = produce(mockState, (draft) => {
+      draft.didDisplayStudentIds = mockState.shouldDisplayStudentIds;
+      draft.hasMore = false;
+      draft.nextStartIndex = 25;
+    });
+    expect(reducer(mockState, pageIsChanged())).toStrictEqual(expectedState);
+    expect(reducer(expectedState, pageIsChanged())).toStrictEqual(
+      expectedStateSecondPage
+    );
+  });
 });
