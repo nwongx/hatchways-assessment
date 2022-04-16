@@ -11,7 +11,7 @@ import reducer, {
 import { mockState } from './student.slice.mockData';
 import {
   getNextPageInfo,
-  getSearchInfo,
+  getQueryInfo,
   getShouldDisplayIdsByName,
   getShouldDisplayIdsByIds,
   getShouldDisplayIdsByTag,
@@ -132,7 +132,7 @@ describe('getNextPageInfo', () => {
   });
 });
 
-describe('getSearchInfo', () => {
+describe('getQueryInfo', () => {
   test('should return new queryRefCount and ids', () => {
     const mockGetShouldDisplayIds = jest.fn(
       (students: StudentRecord, ids: StudentId[], name: string) => {
@@ -141,8 +141,8 @@ describe('getSearchInfo', () => {
     );
     const students = mockState.students;
     const ids = mockState.ids;
-    const searchCacheKeyQueue: string[] = [];
-    const searchCache: CachedQueryRecord = {};
+    const queryCacheQueue: string[] = [];
+    const queryCache: CachedQueryRecord = {};
     const nameQuery = 'in';
     const expectedRes = {
       queryRefCount: 1,
@@ -150,9 +150,9 @@ describe('getSearchInfo', () => {
     };
 
     expect(
-      getSearchInfo(
-        searchCacheKeyQueue,
-        searchCache,
+      getQueryInfo(
+        queryCacheQueue,
+        queryCache,
         nameQuery,
         mockGetShouldDisplayIds,
         students,
@@ -170,11 +170,11 @@ describe('getSearchInfo', () => {
     );
     const students = mockState.students;
     const ids = mockState.ids;
-    const searchCacheKeyQueue: string[] = [];
+    const queryCacheQueue: string[] = [];
     for (let i = 0; i < 100; i++) {
-      searchCacheKeyQueue.push(i % 2 === 0 ? 'IN' : 'I');
+      queryCacheQueue.push(i % 2 === 0 ? 'IN' : 'I');
     }
-    const searchCache: CachedQueryRecord = {
+    const queryCache: CachedQueryRecord = {
       I: {
         ids: [
           '1',
@@ -212,9 +212,76 @@ describe('getSearchInfo', () => {
     };
 
     expect(
-      getSearchInfo(
-        searchCacheKeyQueue,
-        searchCache,
+      getQueryInfo(
+        queryCacheQueue,
+        queryCache,
+        nameQuery,
+        mockGetShouldDisplayIds,
+        students,
+        ids
+      )
+    ).toEqual(expectedRes);
+    expect(mockGetShouldDisplayIds.mock.calls.length).toBe(0);
+  });
+
+  test('should have oldestQuery, oldestQueryRefCount === 0 and remaining propties as queue is full', () => {
+    const mockGetShouldDisplayIds = jest.fn(
+      (students: StudentRecord, ids: StudentId[], name: string) => {
+        return getShouldDisplayIdsByName(students, ids, name);
+      }
+    );
+    const students = mockState.students;
+    const ids = mockState.ids;
+    const queryCacheQueue: string[] = [];
+    queryCacheQueue.push('I');
+    for (let i = 1; i < 100; i++) {
+      queryCacheQueue.push(i % 2 === 0 ? 'ING' : 'IN');
+    }
+    const queryCache: CachedQueryRecord = {
+      I: {
+        ids: [
+          '1',
+          '4',
+          '5',
+          '8',
+          '9',
+          '11',
+          '12',
+          '13',
+          '14',
+          '15',
+          '17',
+          '18',
+          '19',
+          '20',
+          '22',
+          '23',
+          '24',
+          '25',
+        ],
+        refCount: 1,
+      },
+      IN: {
+        ids: ['1', '8', '14', '20', '25'],
+        refCount: 50,
+      },
+      ING: {
+        ids: ['1', '20'],
+        refCount: 49
+      }
+    };
+    const nameQuery = 'ing';
+    const expectedRes = {
+      oldestQuery: 'I',
+      oldestQueryRefCount: 0,
+      queryRefCount: 50,
+      shouldDisplayIds: ['1', '20'],
+    };
+
+    expect(
+      getQueryInfo(
+        queryCacheQueue,
+        queryCache,
         nameQuery,
         mockGetShouldDisplayIds,
         students,
@@ -256,6 +323,72 @@ describe('reducer', () => {
       reducer(mockState, queryIsUpdated({ type: 'name', value: 'in' }))
     ).toStrictEqual(nameQueryState);
   });
+
+  test('should remove the oldest query in the queue', () => {
+    const fullQueueMockState = produce(mockState, (draft) => {
+      const queryCacheQueue: string[] = [];
+      queryCacheQueue.push('I');
+      for (let i = 1; i < 100; i++) {
+        queryCacheQueue.push(i % 2 === 0 ? 'ING' : 'IN');
+      }
+      const queryCache: CachedQueryRecord = {
+        I: {
+          ids: [
+            '1',
+            '4',
+            '5',
+            '8',
+            '9',
+            '11',
+            '12',
+            '13',
+            '14',
+            '15',
+            '17',
+            '18',
+            '19',
+            '20',
+            '22',
+            '23',
+            '24',
+            '25',
+          ],
+          refCount: 1,
+        },
+        IN: {
+          ids: ['1', '8', '14', '20', '25'],
+          refCount: 50,
+        },
+        ING: {
+          ids: ['1', '20'],
+          refCount: 49
+        }
+      };
+      draft.nameQueryCache = queryCache;
+      draft.nameQuery = 'IN',
+      draft.nameQueryCacheQueue = queryCacheQueue;
+    })
+    const expectedState = produce(fullQueueMockState, (draft) => {
+      draft.nameQuery = 'ing',
+      draft.nameQueryCache = {
+        IN: {
+          ids: ['1', '8', '14', '20', '25'],
+          refCount: 50,
+        },
+        ING: {
+          ids: ['1', '20'],
+          refCount: 50,
+        }
+      };
+      draft.nameQueryCacheQueue.shift();
+      draft.nameQueryCacheQueue.push('ING');
+      draft.shouldDisplayIds = ['1', '20'];
+      draft.didDisplayIds = ['1', '20'];
+      draft.hasMore = false;
+      draft.nextStartIndex = 2;
+    })
+    expect(reducer(fullQueueMockState, queryIsUpdated({ type: 'name', value: 'ing'}))).toStrictEqual(expectedState);
+  })
 
   test('should update tagQuery related properties and display student Ids', () => {
     expect(
@@ -339,6 +472,59 @@ describe('reducer', () => {
       )
     ).toStrictEqual(expectedState);
   });
+
+  test('should remove the oldest query in the queue', () => {
+    const fullQueueMockState = produce(mockState, (draft) => {
+      const queryCacheQueue: string[] = [];
+      queryCacheQueue.push('T');
+      for (let i = 1; i < 100; i++) {
+        queryCacheQueue.push(i % 2 === 0 ? 'T1A' : 'T1');
+      }
+      const queryCache: CachedQueryRecord = {
+        T: {
+          ids: [
+            '1',
+            '2',
+            '3',
+            '4',
+            '5'
+          ],
+          refCount: 1,
+        },
+        T1: {
+          ids: ['1', '3'],
+          refCount: 50,
+        },
+        T1A: {
+          ids: [],
+          refCount: 49
+        }
+      };
+      draft.tagQueryCache = queryCache;
+      draft.tagQuery = 't1',
+      draft.tagQueryCacheQueue = queryCacheQueue;
+    })
+    const expectedState = produce(fullQueueMockState, (draft) => {
+      draft.tagQuery = 't1a',
+      draft.tagQueryCache = {
+        T1: {
+          ids: ['1', '3'],
+          refCount: 50,
+        },
+        T1A: {
+          ids: [],
+          refCount: 50,
+        }
+      };
+      draft.tagQueryCacheQueue.shift();
+      draft.tagQueryCacheQueue.push('T1A');
+      draft.shouldDisplayIds = [];
+      draft.didDisplayIds = [];
+      draft.hasMore = false;
+      draft.nextStartIndex = 0;
+    })
+    expect(reducer(fullQueueMockState, queryIsUpdated({ type: 'tag', value: 't1a'}))).toStrictEqual(expectedState);
+  })
 
   test('should update didDisplayIds', () => {
     const expectedState = produce(mockState, (draft) => {
