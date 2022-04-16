@@ -24,14 +24,14 @@ export interface StudentState {
   ids: StudentId[];
   shouldDisplayIds: StudentId[];
   didDisplayIds: StudentId[];
-  searchName: string;
-  searchTag: string;
+  nameQuery: string;
+  tagQuery: string;
   nextStartIndex: number;
   hasMore: boolean;
-  searchNameCache: CachedQueryRecord;
-  searchNameCacheKeyQueue: string[];
-  searchTagCache: CachedQueryRecord;
-  searchTagCacheKeyQueue: string[];
+  nameQueryCache: CachedQueryRecord;
+  nameQueryCacheQueue: string[];
+  tagQueryCache: CachedQueryRecord;
+  tagQueryCacheQueue: string[];
 }
 
 const initialState: StudentState = {
@@ -40,14 +40,14 @@ const initialState: StudentState = {
   ids: [],
   shouldDisplayIds: [],
   didDisplayIds: [],
-  searchName: '',
-  searchTag: '',
+  nameQuery: '',
+  tagQuery: '',
   nextStartIndex: 0,
   hasMore: true,
-  searchNameCache: {},
-  searchNameCacheKeyQueue: [],
-  searchTagCache: {},
-  searchTagCacheKeyQueue: [],
+  nameQueryCache: {},
+  nameQueryCacheQueue: [],
+  tagQueryCache: {},
+  tagQueryCacheQueue: [],
 };
 
 export const fetchStudentsRequest = createAsyncThunk<
@@ -74,22 +74,22 @@ const studentSlice = createSlice({
   reducers: {
     queryIsUpdated: (state, action: PayloadAction<IQueryActionPaylod>) => {
       const { name, tag } = getQuery(
-        { name: state.searchName, tag: state.searchTag },
+        { name: state.nameQuery, tag: state.tagQuery },
         action.payload
       );
 
       const upperCaseQueryName = name.toUpperCase();
       const upperCaseQueryTag = tag.toUpperCase();
-      let searchNameInfo,
-        searchTagInfo,
+      let nameQueryInfo,
+        tagQueryInfo,
         shouldDisplayIds,
         shouldDisplayNameIds,
         shouldDisplayTagIds;
 
       if (name.length > 0) {
-        searchNameInfo = getSearchInfo(
-          state.searchNameCacheKeyQueue,
-          state.searchNameCache,
+        nameQueryInfo = getSearchInfo(
+          state.nameQueryCacheQueue,
+          state.nameQueryCache,
           upperCaseQueryName,
           getShouldDisplayIdsByName,
           state.students,
@@ -100,27 +100,27 @@ const studentSlice = createSlice({
           oldestQueryRefCount,
           queryRefCount,
           shouldDisplayIds,
-        } = searchNameInfo;
+        } = nameQueryInfo;
         if (oldestQuery) {
           if (oldestQueryRefCount === 0) {
-            delete state.searchNameCache[oldestQuery];
-            state.searchNameCacheKeyQueue.shift();
+            delete state.nameQueryCache[oldestQuery];
+            state.nameQueryCacheQueue.shift();
           } else {
-            state.searchNameCache[oldestQuery].refCount = oldestQueryRefCount!;
+            state.nameQueryCache[oldestQuery].refCount = oldestQueryRefCount!;
           }
         }
-        state.searchNameCache[upperCaseQueryName] = {
+        state.nameQueryCache[upperCaseQueryName] = {
           ids: shouldDisplayIds,
           refCount: queryRefCount,
         };
-        state.searchNameCacheKeyQueue.push(upperCaseQueryName);
+        state.nameQueryCacheQueue.push(upperCaseQueryName);
         shouldDisplayNameIds = shouldDisplayIds;
       }
 
       if (tag.length > 0) {
-        searchTagInfo = getSearchInfo(
-          state.searchTagCacheKeyQueue,
-          state.searchTagCache,
+        tagQueryInfo = getSearchInfo(
+          state.tagQueryCacheQueue,
+          state.tagQueryCache,
           upperCaseQueryTag,
           getShouldDisplayIdsByTag,
           state.students,
@@ -131,27 +131,27 @@ const studentSlice = createSlice({
           oldestQueryRefCount,
           queryRefCount,
           shouldDisplayIds,
-        } = searchTagInfo;
+        } = tagQueryInfo;
         if (oldestQuery) {
           if (oldestQueryRefCount === 0) {
-            delete state.searchTagCache[oldestQuery];
-            state.searchTagCacheKeyQueue.shift();
+            delete state.tagQueryCache[oldestQuery];
+            state.tagQueryCacheQueue.shift();
           } else {
-            state.searchTagCache[oldestQuery].refCount = oldestQueryRefCount!;
+            state.tagQueryCache[oldestQuery].refCount = oldestQueryRefCount!;
           }
         }
-        state.searchTagCache[upperCaseQueryTag] = {
+        state.tagQueryCache[upperCaseQueryTag] = {
           ids: shouldDisplayIds,
           refCount: queryRefCount,
         };
-        state.searchTagCacheKeyQueue.push(upperCaseQueryTag);
+        state.tagQueryCacheQueue.push(upperCaseQueryTag);
         shouldDisplayTagIds = shouldDisplayIds;
       }
 
-      if (searchNameInfo && searchTagInfo) {
+      if (nameQueryInfo && tagQueryInfo) {
         shouldDisplayIds = getShouldDisplayIdsByIds(
-          searchNameInfo.shouldDisplayIds,
-          searchTagInfo.shouldDisplayIds
+          nameQueryInfo.shouldDisplayIds,
+          tagQueryInfo.shouldDisplayIds
         );
       } else if (shouldDisplayNameIds) {
         shouldDisplayIds = shouldDisplayNameIds;
@@ -161,8 +161,8 @@ const studentSlice = createSlice({
         shouldDisplayIds = state.ids;
       }
 
-      state.searchName = name;
-      state.searchTag = tag;
+      state.nameQuery = name;
+      state.tagQuery = tag;
       state.shouldDisplayIds = shouldDisplayIds;
       const { size, hasMore } = getNextPageInfo(shouldDisplayIds);
       state.hasMore = hasMore;
@@ -178,8 +178,8 @@ const studentSlice = createSlice({
 
       if (!new Set(student.tags).has(tag)) {
         student.tags = [...student.tags, tag];
-        if (state.searchTagCache[tag.toUpperCase()]) {
-          state.searchTagCache[tag.toUpperCase()].ids.push(student.id);
+        if (state.tagQueryCache[tag.toUpperCase()]) {
+          state.tagQueryCache[tag.toUpperCase()].ids.push(student.id);
         }
       }
     },

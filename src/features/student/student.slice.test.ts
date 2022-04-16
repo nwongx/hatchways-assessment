@@ -29,14 +29,14 @@ test('should return the initial state', () => {
     ids: [],
     shouldDisplayIds: [],
     didDisplayIds: [],
-    searchName: '',
-    searchTag: '',
+    nameQuery: '',
+    tagQuery: '',
     nextStartIndex: 0,
     hasMore: true,
-    searchNameCache: {},
-    searchNameCacheKeyQueue: [],
-    searchTagCache: {},
-    searchTagCacheKeyQueue: [],
+    nameQueryCache: {},
+    nameQueryCacheQueue: [],
+    tagQueryCache: {},
+    tagQueryCacheQueue: [],
   });
 });
 
@@ -44,22 +44,22 @@ describe('getShouldDisplayIdsByName', () => {
   test('should return an string array which the id of student fullName contains searching characters regardless of case', () => {
     const students = mockState.students;
     const ids = mockState.ids;
-    const upperCaseSearchName = 'IN';
-    const lowerCaseSearchName = 'in';
+    const upperCaseNameQuery = 'IN';
+    const lowerCaseNameQuery = 'in';
     const expectedIds = ['1', '8', '14', '20', '25'];
     expect(
-      getShouldDisplayIdsByName(students, ids, upperCaseSearchName)
+      getShouldDisplayIdsByName(students, ids, upperCaseNameQuery)
     ).toStrictEqual(expectedIds);
     expect(
-      getShouldDisplayIdsByName(students, ids, lowerCaseSearchName)
+      getShouldDisplayIdsByName(students, ids, lowerCaseNameQuery)
     ).toStrictEqual(expectedIds);
   });
 
   test('should return full list when query name is empty', () => {
     const students = mockState.students;
     const ids = mockState.ids;
-    const searchName = '';
-    expect(getShouldDisplayIdsByName(students, ids, searchName)).toStrictEqual(
+    const nameQuery = '';
+    expect(getShouldDisplayIdsByName(students, ids, nameQuery)).toStrictEqual(
       ids
     );
   });
@@ -70,23 +70,23 @@ describe('getShouldDisplayIdsByTag', () => {
     const students = mockState.students;
     const ids = mockState.ids;
     const upperCaseSearchTag = 't1';
-    const lowerCaseSearchName = 'T1';
+    const lowerCaseNameQuery = 'T1';
     const expectedIds = ['1', '3'];
 
     expect(
       getShouldDisplayIdsByTag(students, ids, upperCaseSearchTag)
     ).toStrictEqual(expectedIds);
     expect(
-      getShouldDisplayIdsByTag(students, ids, lowerCaseSearchName)
+      getShouldDisplayIdsByTag(students, ids, lowerCaseNameQuery)
     ).toStrictEqual(expectedIds);
   });
 
   test('should return full list when query tag is empty', () => {
     const students = mockState.students;
     const ids = mockState.ids;
-    const searchTag = '';
+    const tagQuery = '';
 
-    expect(getShouldDisplayIdsByTag(students, ids, searchTag)).toStrictEqual(
+    expect(getShouldDisplayIdsByTag(students, ids, tagQuery)).toStrictEqual(
       ids
     );
   });
@@ -143,7 +143,7 @@ describe('getSearchInfo', () => {
     const ids = mockState.ids;
     const searchCacheKeyQueue: string[] = [];
     const searchCache: CachedQueryRecord = {};
-    const searchName = 'in';
+    const nameQuery = 'in';
     const expectedRes = {
       queryRefCount: 1,
       shouldDisplayIds: ['1', '8', '14', '20', '25'],
@@ -153,7 +153,7 @@ describe('getSearchInfo', () => {
       getSearchInfo(
         searchCacheKeyQueue,
         searchCache,
-        searchName,
+        nameQuery,
         mockGetShouldDisplayIds,
         students,
         ids
@@ -203,7 +203,7 @@ describe('getSearchInfo', () => {
         refCount: 50,
       },
     };
-    const searchName = 'in';
+    const nameQuery = 'in';
     const expectedRes = {
       oldestQuery: 'IN',
       oldestQueryRefCount: 49,
@@ -215,7 +215,7 @@ describe('getSearchInfo', () => {
       getSearchInfo(
         searchCacheKeyQueue,
         searchCache,
-        searchName,
+        nameQuery,
         mockGetShouldDisplayIds,
         students,
         ids
@@ -226,74 +226,74 @@ describe('getSearchInfo', () => {
 });
 
 describe('reducer', () => {
-  const searchNameState = produce(mockState, (draft) => {
-    (draft.searchName = 'in'),
-      (draft.searchNameCache['IN'] = {
+  const nameQueryState = produce(mockState, (draft) => {
+    (draft.nameQuery = 'in'),
+      (draft.nameQueryCache['IN'] = {
         ids: ['1', '8', '14', '20', '25'],
         refCount: 1,
       });
-    draft.searchNameCacheKeyQueue = ['IN'];
+    draft.nameQueryCacheQueue = ['IN'];
     draft.hasMore = false;
     draft.nextStartIndex = 5;
     draft.shouldDisplayIds = ['1', '8', '14', '20', '25'];
     draft.didDisplayIds = ['1', '8', '14', '20', '25'];
   });
-  const searchTagState = produce(mockState, (draft) => {
-    (draft.searchTag = 't1'),
-      (draft.searchTagCache['T1'] = {
+  const tagQueryState = produce(mockState, (draft) => {
+    (draft.tagQuery = 't1'),
+      (draft.tagQueryCache['T1'] = {
         ids: ['1', '3'],
         refCount: 1,
       });
-    draft.searchTagCacheKeyQueue = ['T1'];
+    draft.tagQueryCacheQueue = ['T1'];
     draft.hasMore = false;
     draft.nextStartIndex = 2;
     draft.shouldDisplayIds = ['1', '3'];
     draft.didDisplayIds = ['1', '3'];
   });
 
-  test('should update searchName related properties and display student Ids', () => {
+  test('should update nameQuery related properties and display student Ids', () => {
     expect(
       reducer(mockState, queryIsUpdated({ type: 'name', value: 'in' }))
-    ).toStrictEqual(searchNameState);
+    ).toStrictEqual(nameQueryState);
   });
 
-  test('should update searchTag related properties and display student Ids', () => {
+  test('should update tagQuery related properties and display student Ids', () => {
     expect(
       reducer(mockState, queryIsUpdated({ type: 'tag', value: 't1' }))
-    ).toStrictEqual(searchTagState);
+    ).toStrictEqual(tagQueryState);
   });
 
   test('should update both name and Tag properties and display student ids', () => {
-    const searchNameState = reducer(
+    const nameQueryState = reducer(
       mockState,
       queryIsUpdated({ type: 'name', value: 'in' })
     );
-    const expectedSearchNameState = produce(mockState, (draft) => {
-      draft.searchName = 'in';
-      draft.searchNameCache['IN'] = {
+    const expectedNameQueryState = produce(mockState, (draft) => {
+      draft.nameQuery = 'in';
+      draft.nameQueryCache['IN'] = {
         ids: ['1', '8', '14', '20', '25'],
         refCount: 1,
       };
-      draft.searchNameCacheKeyQueue = ['IN'];
+      draft.nameQueryCacheQueue = ['IN'];
       draft.hasMore = false;
       draft.nextStartIndex = 5;
       draft.shouldDisplayIds = ['1', '8', '14', '20', '25'];
       draft.didDisplayIds = ['1', '8', '14', '20', '25'];
     });
-    expect(searchNameState).toStrictEqual(expectedSearchNameState);
+    expect(nameQueryState).toStrictEqual(expectedNameQueryState);
     const searchState = reducer(
-      searchNameState,
+      nameQueryState,
       queryIsUpdated({ type: 'tag', value: 't1' })
     );
-    const expectedState = produce(searchNameState, (draft) => {
-      draft.searchTag = 't1';
-      draft.searchTagCache['T1'] = {
+    const expectedState = produce(nameQueryState, (draft) => {
+      draft.tagQuery = 't1';
+      draft.tagQueryCache['T1'] = {
         ids: ['1', '3'],
         refCount: 1,
       };
-      draft.searchNameCache['IN'].refCount = 2;
-      draft.searchNameCacheKeyQueue.push('IN');
-      draft.searchTagCacheKeyQueue = ['T1'];
+      draft.nameQueryCache['IN'].refCount = 2;
+      draft.nameQueryCacheQueue.push('IN');
+      draft.tagQueryCacheQueue = ['T1'];
       draft.hasMore = false;
       draft.nextStartIndex = 1;
       draft.shouldDisplayIds = ['1'];
@@ -304,7 +304,7 @@ describe('reducer', () => {
 
   test('should update student tags array and tag cache array', () => {
     const mockStateWithSearchTagCache = produce(mockState, (draft) => {
-      draft.searchTagCache = {
+      draft.tagQueryCache = {
         T: {
           ids: ['1', '2', '3', '4', '5'],
           refCount: 1,
@@ -314,13 +314,13 @@ describe('reducer', () => {
           refCount: 1,
         },
       };
-      draft.searchTagCacheKeyQueue = ['T', 'T1'];
+      draft.tagQueryCacheQueue = ['T', 'T1'];
     });
     const expectedStateWithSearchTagCache = produce(
       mockStateWithSearchTagCache,
       (draft) => {
         draft.students[5].tags.push('t1');
-        draft.searchTagCache['T1'].ids.push(draft.students[5].id);
+        draft.tagQueryCache['T1'].ids.push(draft.students[5].id);
       }
     );
     const expectedState = produce(mockStateWithSearchTagCache, (draft) => {
