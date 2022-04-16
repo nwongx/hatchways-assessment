@@ -8,6 +8,8 @@ import Grade from './grade';
 import Tag from './tag';
 import SubtractIcon from '../icons/subtract';
 import AddIcon from '../icons/add';
+import { validateTag } from '../utils/string';
+import { toast } from 'react-toastify';
 
 type StudentProfileProps = {
   student: IStudentLocal;
@@ -17,6 +19,18 @@ const StudentProfile: FC<StudentProfileProps> = ({ student }) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const dispatch = useDispatch();
   const { company, email, fullName, grades, pic, skill, tags } = student;
+
+  function tagAddedHandler(input: string) {
+    const trimTag = input.trim();
+    if (!validateTag(trimTag)) {
+      toast('Invalid Tag', { type: 'error'});
+    } else {
+      dispatch(studentTagIsAdded({
+        id: student.id,
+        tag: trimTag
+      }))
+    }
+  }
 
   return (
     <div className="flex-col md:flex-row flex px-6 py-3 gap-10 border-b last:border-b-0 border-b-g">
@@ -68,9 +82,7 @@ const StudentProfile: FC<StudentProfileProps> = ({ student }) => {
           </div>
           <CustomeInput
             placeholder="Add a new tag"
-            onKeyUp={(input) => {
-              dispatch(studentTagIsAdded({ id: student.id, tag: input }));
-            }}
+            onKeyUp={tagAddedHandler}
             targetKeyUp="Enter"
           />
         </div>

@@ -1,4 +1,4 @@
-import type {
+import {
   CachedQueryRecord,
   StudentId,
   StudentRecord,
@@ -7,8 +7,9 @@ import reducer, {
   queryIsUpdated,
   studentTagIsAdded,
   pageIsChanged,
+  StudentState
 } from './student.slice';
-import { mockState } from './student.slice.mockData';
+import { mockRes, mockState, mockStateAfterFetch } from './student.slice.mockData';
 import {
   getNextPageInfo,
   getQueryInfo,
@@ -366,20 +367,20 @@ describe('reducer', () => {
       };
       draft.nameQueryCache = queryCache;
       draft.nameQuery = 'IN',
-      draft.nameQueryCacheQueue = queryCacheQueue;
+        draft.nameQueryCacheQueue = queryCacheQueue;
     })
     const expectedState = produce(fullQueueMockState, (draft) => {
       draft.nameQuery = 'ing',
-      draft.nameQueryCache = {
-        IN: {
-          ids: ['1', '8', '14', '20', '25'],
-          refCount: 50,
-        },
-        ING: {
-          ids: ['1', '20'],
-          refCount: 50,
-        }
-      };
+        draft.nameQueryCache = {
+          IN: {
+            ids: ['1', '8', '14', '20', '25'],
+            refCount: 50,
+          },
+          ING: {
+            ids: ['1', '20'],
+            refCount: 50,
+          }
+        };
       draft.nameQueryCacheQueue.shift();
       draft.nameQueryCacheQueue.push('ING');
       draft.shouldDisplayIds = ['1', '20'];
@@ -387,7 +388,7 @@ describe('reducer', () => {
       draft.hasMore = false;
       draft.nextStartIndex = 2;
     })
-    expect(reducer(fullQueueMockState, queryIsUpdated({ type: 'name', value: 'ing'}))).toStrictEqual(expectedState);
+    expect(reducer(fullQueueMockState, queryIsUpdated({ type: 'name', value: 'ing' }))).toStrictEqual(expectedState);
   })
 
   test('should update tagQuery related properties and display student Ids', () => {
@@ -502,20 +503,20 @@ describe('reducer', () => {
       };
       draft.tagQueryCache = queryCache;
       draft.tagQuery = 't1',
-      draft.tagQueryCacheQueue = queryCacheQueue;
+        draft.tagQueryCacheQueue = queryCacheQueue;
     })
     const expectedState = produce(fullQueueMockState, (draft) => {
       draft.tagQuery = 't1a',
-      draft.tagQueryCache = {
-        T1: {
-          ids: ['1', '3'],
-          refCount: 50,
-        },
-        T1A: {
-          ids: [],
-          refCount: 50,
-        }
-      };
+        draft.tagQueryCache = {
+          T1: {
+            ids: ['1', '3'],
+            refCount: 50,
+          },
+          T1A: {
+            ids: [],
+            refCount: 50,
+          }
+        };
       draft.tagQueryCacheQueue.shift();
       draft.tagQueryCacheQueue.push('T1A');
       draft.shouldDisplayIds = [];
@@ -523,7 +524,7 @@ describe('reducer', () => {
       draft.hasMore = false;
       draft.nextStartIndex = 0;
     })
-    expect(reducer(fullQueueMockState, queryIsUpdated({ type: 'tag', value: 't1a'}))).toStrictEqual(expectedState);
+    expect(reducer(fullQueueMockState, queryIsUpdated({ type: 'tag', value: 't1a' }))).toStrictEqual(expectedState);
   })
 
   test('should update didDisplayIds', () => {
@@ -542,4 +543,27 @@ describe('reducer', () => {
       expectedStateSecondPage
     );
   });
+
+  test('fetchStudent', () => {
+    const initialState: StudentState = {
+      fetchState: 'idle',
+      students: {},
+      ids: [],
+      shouldDisplayIds: [],
+      didDisplayIds: [],
+      nameQuery: '',
+      tagQuery: '',
+      nextStartIndex: 0,
+      hasMore: true,
+      nameQueryCache: {},
+      nameQueryCacheQueue: [],
+      tagQueryCache: {},
+      tagQueryCacheQueue: [],
+    };
+    expect(reducer(initialState, {
+      type: 'student/fetchStudentsRequest/fulfilled',
+      payload: mockRes
+    })).toStrictEqual(mockStateAfterFetch);
+  })
 });
+

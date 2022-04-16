@@ -10,12 +10,14 @@ import {
   pageIsChanged,
 } from './features/student/student.slice';
 import CustomeInput from './components/customInput';
+import { validateName, validateTag } from './utils/string';
+import { toast } from 'react-toastify';
 
 function App() {
   const {
     students,
-    didDisplayIds,
     fetchState,
+    didDisplayIds,
     nextStartIndex,
     hasMore,
   } = useSelector((state: RootState) => state.student);
@@ -29,6 +31,25 @@ function App() {
     fetchStudentsHelper();
   }, []);
 
+  function nameQueryChangeHandler(input: string) {
+    const trimName = input.trim();
+    if(!validateName(trimName)) {
+      toast('Invalid Name Query', { type: 'error'});
+    } else {
+      dispatch(queryIsUpdated({ type: 'name', value: trimName}));
+    }
+  }
+
+  function tagaQueryChangeHandler(input: string) {
+    const trimTag = input.trim();
+    if(!validateTag(trimTag)) {
+      toast('Invalid Tag Query', { type: 'error'});
+    } else {
+      dispatch(queryIsUpdated({ type: 'tag', value: trimTag}));
+    }
+  }
+
+
   if (fetchState === 'rejected') return <div>Something went wrong</div>;
   if (fetchState === 'pending') return <div>Loading...</div>;
   return (
@@ -39,15 +60,11 @@ function App() {
       >
         <CustomeInput
           placeholder="Search by name"
-          onChange={(input) => {
-            dispatch(queryIsUpdated({ type: 'name', value: input }));
-          }}
+          onChange={nameQueryChangeHandler}
         />
         <CustomeInput
           placeholder="Search by tag"
-          onChange={(input) => {
-            dispatch(queryIsUpdated({ type: 'tag', value: input }));
-          }}
+          onChange={tagaQueryChangeHandler}
         />
 
         <InfiniteScroll
