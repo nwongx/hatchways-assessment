@@ -1,15 +1,10 @@
 FROM node:lts-alpine AS development
 ENV NODE_ENV development
-
 RUN mkdir -p /usr/app/src
 WORKDIR /usr/app/src
-
 COPY package.json .
 COPY package-lock.json .
 RUN npm install
-
 COPY . .
-
 EXPOSE 3000
-
 CMD ["npm", "start"]
