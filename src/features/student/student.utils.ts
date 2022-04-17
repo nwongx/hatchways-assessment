@@ -8,6 +8,8 @@ import type {
   GetShouldDisplayIdsFN,
 } from "./student.interface";
 
+import { QUEUE_SIZE, PAGE_SIZE } from "../../utils/constant";
+
 export function getMixQuery(
   prevQuery: ICachedMixQuery,
   actionPayload: IQueryActionPaylod
@@ -24,11 +26,12 @@ export function getMixQuery(
   };
 }
 
-export function getNextPageInfo(ids: StudentId[]): IPage {
-  if (ids.length <= 10) {
-    return { size: ids.length, hasMore: false };
+export function getNextPageInfo(sizeSource: StudentId[] | number): IPage {
+  const size = Array.isArray(sizeSource) ? sizeSource.length : sizeSource;
+  if (size <= PAGE_SIZE) {
+    return { size, hasMore: false };
   }
-  return { size: 10, hasMore: true };
+  return { size: PAGE_SIZE, hasMore: true };
 }
 
 export function getQueryInfo(
@@ -43,7 +46,7 @@ export function getQueryInfo(
   let oldestQueryRefCount: number | undefined;
   let queryRefCount: number;
   let queryDisplayIds: StudentId[];
-  if (queryCacheQueue.length === 100) {
+  if (queryCacheQueue.length === QUEUE_SIZE) {
     // queue is full
     [oldestQuery] = queryCacheQueue;
     oldestQueryRefCount = queryCache[oldestQuery].refCount - 1;

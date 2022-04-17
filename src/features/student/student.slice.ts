@@ -76,6 +76,19 @@ const studentSlice = createSlice({
   name: "student",
   initialState,
   reducers: {
+    /*
+      1. get the previous name and tag query in store and merge with new query
+      2. if query is not empty string
+        - if query exists in lookup table
+          - if query ref queue is not full
+            - push query to the queue and update refcount
+          - else remove oldest queue and push query, and update both queries' refcount
+        - else search the ids with query and update the lookup table
+        - if both queries are not empty
+          - changing one of the ids from the above to lookup table and comparing it
+            with another ids
+      3.  update page setting and displayIds based on result from 2 
+     */
     queryIsUpdated: (state, action: PayloadAction<IQueryActionPaylod>) => {
       const { name, tag } = getMixQuery(
         { name: state.nameQuery, tag: state.tagQuery },
@@ -184,14 +197,18 @@ const studentSlice = createSlice({
         }
       }
     },
+    /*
+      based on the remaining shouldDisplayIds
+      update the didDisplayIds by at most 10 students everytime
+      if the size of next page less than 10 
+      the function will not be executed by setting hasmore to false
+    */
     pageIsChanged: (state) => {
       const { shouldDisplayIds, nextStartIndex } = state;
-      let size = shouldDisplayIds.length - nextStartIndex;
-      if (size <= 10) {
-        state.hasMore = false;
-      } else {
-        size = 10;
-      }
+      const { size, hasMore } = getNextPageInfo(
+        shouldDisplayIds.length - nextStartIndex
+      );
+      state.hasMore = hasMore;
       state.didDisplayIds = shouldDisplayIds.slice(0, nextStartIndex + size);
       state.nextStartIndex += size;
     },
@@ -221,14 +238,10 @@ const studentSlice = createSlice({
         state.students = studentRecords;
         state.ids = ids;
         state.shouldDisplayIds = ids;
-        let pageSize = ids.length;
-        if (pageSize <= 10) {
-          state.hasMore = false;
-        } else {
-          pageSize = 10;
-        }
-        state.nextStartIndex = pageSize;
-        state.didDisplayIds = ids.slice(0, pageSize);
+        const { size, hasMore } = getNextPageInfo(ids);
+        state.hasMore = hasMore;
+        state.nextStartIndex = size;
+        state.didDisplayIds = ids.slice(0, size);
       })
       .addCase(fetchStudentsRequest.rejected, (state) => {
         state.fetchState = "rejected";
