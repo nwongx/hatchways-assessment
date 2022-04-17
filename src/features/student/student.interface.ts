@@ -21,14 +21,14 @@ export interface IStudentRespond {
 
 export type StudentId = string;
 
-export type QueryType = 'name' | 'tag';
+export type QueryType = "name" | "tag";
 export interface IQueryActionPaylod {
   type: QueryType;
   value: string;
 }
 
 export interface IAddTagActionPayload {
-  id: StudentId,
+  id: StudentId;
   tag: string;
 }
 
@@ -50,6 +50,10 @@ export interface ICachedQueryRes {
 export type StudentRecord = Record<StudentId, IStudentLocal>;
 export type CachedQueryRecord = Record<string, ICachedQueryRes>;
 
-export type FetchState = 'idle' | 'pending' | 'rejected';
+export type FetchState = "idle" | "pending" | "rejected";
 
-export type GetShouldDisplayIdsFN = (students: StudentRecord, ids: StudentId[], query: string) => StudentId[];
+export type GetShouldDisplayIdsFN = (
+  students: StudentRecord,
+  ids: StudentId[],
+  query: string
+) => StudentId[];

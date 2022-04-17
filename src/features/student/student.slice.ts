@@ -1,5 +1,6 @@
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchStudents } from './student.api';
+/* eslint-disable no-param-reassign */
+import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { fetchStudents } from "./student.api";
 import {
   getNextPageInfo,
   getMixQuery,
@@ -7,7 +8,7 @@ import {
   getShouldDisplayIdsByName,
   getShouldDisplayIdsByIds,
   getShouldDisplayIdsByTag,
-} from './student.utils';
+} from "./student.utils";
 import type {
   IQueryActionPaylod,
   IStudent,
@@ -17,8 +18,8 @@ import type {
   StudentRecord,
   FetchState,
   IAddTagActionPayload,
-} from './student.interface';
-import type { RootState } from '../../app/store';
+} from "./student.interface";
+import type { RootState } from "../../app/store";
 
 export interface StudentState {
   fetchState: FetchState;
@@ -37,13 +38,13 @@ export interface StudentState {
 }
 
 const initialState: StudentState = {
-  fetchState: 'idle',
+  fetchState: "idle",
   students: {},
   ids: [],
   shouldDisplayIds: [],
   didDisplayIds: [],
-  nameQuery: '',
-  tagQuery: '',
+  nameQuery: "",
+  tagQuery: "",
   nextStartIndex: 0,
   hasMore: true,
   nameQueryCache: {},
@@ -57,7 +58,7 @@ export const fetchStudentsRequest = createAsyncThunk<
   void,
   { state: RootState }
 >(
-  'student/fetchStudentsRequest',
+  "student/fetchStudentsRequest",
   async () => {
     const res = await fetchStudents();
     return res.data.students;
@@ -65,13 +66,14 @@ export const fetchStudentsRequest = createAsyncThunk<
   {
     condition: (_, { getState }) => {
       const { fetchState } = getState().student;
-      if (fetchState !== 'idle') return false;
+      if (fetchState !== "idle") return false;
+      return true;
     },
   }
 );
 
 const studentSlice = createSlice({
-  name: 'student',
+  name: "student",
   initialState,
   reducers: {
     queryIsUpdated: (state, action: PayloadAction<IQueryActionPaylod>) => {
@@ -82,11 +84,11 @@ const studentSlice = createSlice({
 
       const upperCaseNameQuery = name.toUpperCase();
       const upperCaseTagQuery = tag.toUpperCase();
-      let nameQueryInfo,
-        tagQueryInfo,
-        shouldDisplayIds,
-        shouldDisplayNameIds,
-        shouldDisplayTagIds;
+      let nameQueryInfo;
+      let tagQueryInfo;
+      let shouldDisplayIds;
+      let shouldDisplayNameIds;
+      let shouldDisplayTagIds;
 
       if (name.length > 0) {
         nameQueryInfo = getQueryInfo(
@@ -101,7 +103,7 @@ const studentSlice = createSlice({
           oldestQuery,
           oldestQueryRefCount,
           queryRefCount,
-          shouldDisplayIds,
+          queryDisplayIds,
         } = nameQueryInfo;
         if (oldestQuery && oldestQueryRefCount !== undefined) {
           if (oldestQueryRefCount === 0) {
@@ -112,11 +114,11 @@ const studentSlice = createSlice({
           }
         }
         state.nameQueryCache[upperCaseNameQuery] = {
-          ids: shouldDisplayIds,
+          ids: queryDisplayIds,
           refCount: queryRefCount,
         };
         state.nameQueryCacheQueue.push(upperCaseNameQuery);
-        shouldDisplayNameIds = shouldDisplayIds;
+        shouldDisplayNameIds = queryDisplayIds;
       }
 
       if (tag.length > 0) {
@@ -132,7 +134,7 @@ const studentSlice = createSlice({
           oldestQuery,
           oldestQueryRefCount,
           queryRefCount,
-          shouldDisplayIds,
+          queryDisplayIds,
         } = tagQueryInfo;
         if (oldestQuery && oldestQueryRefCount !== undefined) {
           if (oldestQueryRefCount === 0) {
@@ -143,17 +145,17 @@ const studentSlice = createSlice({
           }
         }
         state.tagQueryCache[upperCaseTagQuery] = {
-          ids: shouldDisplayIds,
+          ids: queryDisplayIds,
           refCount: queryRefCount,
         };
         state.tagQueryCacheQueue.push(upperCaseTagQuery);
-        shouldDisplayTagIds = shouldDisplayIds;
+        shouldDisplayTagIds = queryDisplayIds;
       }
 
       if (nameQueryInfo && tagQueryInfo) {
         shouldDisplayIds = getShouldDisplayIdsByIds(
-          nameQueryInfo.shouldDisplayIds,
-          tagQueryInfo.shouldDisplayIds
+          nameQueryInfo.queryDisplayIds,
+          tagQueryInfo.queryDisplayIds
         );
       } else if (shouldDisplayNameIds) {
         shouldDisplayIds = shouldDisplayNameIds;
@@ -171,10 +173,7 @@ const studentSlice = createSlice({
       state.nextStartIndex = size;
       state.didDisplayIds = shouldDisplayIds.slice(0, size);
     },
-    studentTagIsAdded: (
-      state,
-      action: PayloadAction<IAddTagActionPayload>
-    ) => {
+    studentTagIsAdded: (state, action: PayloadAction<IAddTagActionPayload>) => {
       const { id, tag } = action.payload;
       const student = state.students[id];
 
@@ -200,22 +199,24 @@ const studentSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchStudentsRequest.pending, (state) => {
-        state.fetchState = 'pending';
+        state.fetchState = "pending";
       })
       .addCase(fetchStudentsRequest.fulfilled, (state, action) => {
         const students = action.payload;
-        state.fetchState = 'idle';
-        const studentRecords: StudentRecord = students.reduce<
-         StudentRecord 
-        >((res, student) => {
-          const studentLocal: IStudentLocal = {
-            ...student,
-            fullName: `${student.firstName} ${student.lastName}`.toUpperCase(),
-            tags: [],
-          };
-          res[student.id] = studentLocal;
-          return res;
-        }, {});
+        state.fetchState = "idle";
+        const studentRecords: StudentRecord = students.reduce<StudentRecord>(
+          (res, student) => {
+            const studentLocal: IStudentLocal = {
+              ...student,
+              fullName:
+                `${student.firstName} ${student.lastName}`.toUpperCase(),
+              tags: [],
+            };
+            res[student.id] = studentLocal;
+            return res;
+          },
+          {}
+        );
         const ids = Object.keys(studentRecords);
         state.students = studentRecords;
         state.ids = ids;
@@ -229,8 +230,8 @@ const studentSlice = createSlice({
         state.nextStartIndex = pageSize;
         state.didDisplayIds = ids.slice(0, pageSize);
       })
-      .addCase(fetchStudentsRequest.rejected, (state ) => {
-        state.fetchState = 'rejected';
+      .addCase(fetchStudentsRequest.rejected, (state) => {
+        state.fetchState = "rejected";
       });
   },
 });

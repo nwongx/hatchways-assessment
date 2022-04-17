@@ -1,5 +1,5 @@
-import React, { FC, useEffect, useState } from 'react';
-import { useDidMount } from '../app/hooks';
+import React, { useEffect, useState } from "react";
+import { useDidMount } from "../app/hooks";
 
 type CustomeInputProps = {
   placeholder: string;
@@ -8,31 +8,33 @@ type CustomeInputProps = {
   onKeyUp?: (input: string) => void;
 };
 
-const CustomeInput: FC<CustomeInputProps> = ({
+function CustomeInput({
   placeholder,
   targetKeyUp,
   onChange,
   onKeyUp,
-}) => {
-  const [input, setInput] = useState<string>('');
-  const [keyUp, setKeyUp] = useState<string>('');
+}: CustomeInputProps) {
+  const [input, setInput] = useState<string>("");
+  const [keyUp, setKeyUp] = useState<string>("");
   const isDidMount = useDidMount();
 
   useEffect(() => {
     if (isDidMount && onChange) {
       onChange(input);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input]);
 
   useEffect(() => {
     if (isDidMount && onKeyUp && targetKeyUp === keyUp) {
       onKeyUp(input);
-      setInput('');
+      setInput("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyUp]);
   const specificClassName = onKeyUp
-    ? 'leading-8 px-0.5 text-sm border-b'
-    : 'leading-10 px-1 mx-2 text-xl mx-2 border-b-2';
+    ? "leading-8 px-0.5 text-sm border-b"
+    : "leading-10 px-1 mx-2 text-xl mx-2 border-b-2";
 
   return (
     <input
@@ -43,6 +45,6 @@ const CustomeInput: FC<CustomeInputProps> = ({
       onKeyUp={(e) => setKeyUp(e.key)}
     />
   );
-};
+}
 
 export default CustomeInput;

@@ -6,13 +6,13 @@ import type {
   StudentId,
   StudentRecord,
   GetShouldDisplayIdsFN,
-} from './student.interface';
+} from "./student.interface";
 
 export function getMixQuery(
   prevQuery: ICachedMixQuery,
   actionPayload: IQueryActionPaylod
 ): ICachedMixQuery {
-  if (actionPayload.type === 'name') {
+  if (actionPayload.type === "name") {
     return {
       name: actionPayload.value,
       tag: prevQuery.tag,
@@ -42,23 +42,23 @@ export function getQueryInfo(
   let oldestQuery: string | undefined;
   let oldestQueryRefCount: number | undefined;
   let queryRefCount: number;
-  let shouldDisplayIds: StudentId[];
+  let queryDisplayIds: StudentId[];
   if (queryCacheQueue.length === 100) {
-    //queue is full
-    oldestQuery = queryCacheQueue[0];
+    // queue is full
+    [oldestQuery] = queryCacheQueue;
     oldestQueryRefCount = queryCache[oldestQuery].refCount - 1;
   }
   const upperCaseQuery = query.toUpperCase();
   if (queryCache[upperCaseQuery]) {
-    //name exists in cache
+    // name exists in cache
     queryRefCount =
       oldestQuery === upperCaseQuery
         ? queryCache[upperCaseQuery].refCount
         : queryCache[upperCaseQuery].refCount + 1;
-    shouldDisplayIds = queryCache[upperCaseQuery].ids;
+    queryDisplayIds = queryCache[upperCaseQuery].ids;
   } else {
-    //name doesn't exist in cache
-    shouldDisplayIds = getShouldDisplayIds(students, ids, upperCaseQuery);
+    // name doesn't exist in cache
+    queryDisplayIds = getShouldDisplayIds(students, ids, upperCaseQuery);
     queryRefCount = 1;
   }
 
@@ -66,7 +66,7 @@ export function getQueryInfo(
     oldestQuery,
     oldestQueryRefCount,
     queryRefCount,
-    shouldDisplayIds,
+    queryDisplayIds,
   };
 }
 
