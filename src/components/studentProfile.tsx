@@ -49,6 +49,7 @@ function StudentProfile({ student }: StudentProfileProps) {
           <button
             className="mt-1 w-8 h-8"
             type="button"
+            aria-label={isExpanded ? "collapse button" : "expand button"}
             onClick={() => {
               setIsExpanded((prev) => !prev);
             }}

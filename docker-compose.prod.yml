@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: hatchways-assessment-prod
+    image: hatchways-assessment-prod
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    volumes:
+      - /usr/app/src
+    ports:
+      - 8080:80 
