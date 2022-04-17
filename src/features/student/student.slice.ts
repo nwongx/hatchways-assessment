@@ -103,12 +103,12 @@ const studentSlice = createSlice({
           queryRefCount,
           shouldDisplayIds,
         } = nameQueryInfo;
-        if (oldestQuery) {
+        if (oldestQuery && oldestQueryRefCount !== undefined) {
           if (oldestQueryRefCount === 0) {
             delete state.nameQueryCache[oldestQuery];
             state.nameQueryCacheQueue.shift();
           } else {
-            state.nameQueryCache[oldestQuery].refCount = oldestQueryRefCount!;
+            state.nameQueryCache[oldestQuery].refCount = oldestQueryRefCount;
           }
         }
         state.nameQueryCache[upperCaseNameQuery] = {
@@ -134,12 +134,12 @@ const studentSlice = createSlice({
           queryRefCount,
           shouldDisplayIds,
         } = tagQueryInfo;
-        if (oldestQuery) {
+        if (oldestQuery && oldestQueryRefCount !== undefined) {
           if (oldestQueryRefCount === 0) {
             delete state.tagQueryCache[oldestQuery];
             state.tagQueryCacheQueue.shift();
           } else {
-            state.tagQueryCache[oldestQuery].refCount = oldestQueryRefCount!;
+            state.tagQueryCache[oldestQuery].refCount = oldestQueryRefCount;
           }
         }
         state.tagQueryCache[upperCaseTagQuery] = {
@@ -229,7 +229,7 @@ const studentSlice = createSlice({
         state.nextStartIndex = pageSize;
         state.didDisplayIds = ids.slice(0, pageSize);
       })
-      .addCase(fetchStudentsRequest.rejected, (state, action) => {
+      .addCase(fetchStudentsRequest.rejected, (state ) => {
         state.fetchState = 'rejected';
       });
   },

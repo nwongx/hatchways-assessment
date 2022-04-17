@@ -1,4 +1,4 @@
-export function average(data: string[], decimalPlaces: number = 3): number {
+export function average(data: string[], decimalPlaces = 3): number {
   if (data.length === 0) return -1;
   const sum = data.reduce((acc, curr) => acc + parseInt(curr), 0);
   const avg = sum / data.length;

@@ -46,7 +46,7 @@ export function getQueryInfo(
   if (queryCacheQueue.length === 100) {
     //queue is full
     oldestQuery = queryCacheQueue[0];
-    oldestQueryRefCount = queryCache[oldestQuery!].refCount - 1;
+    oldestQueryRefCount = queryCache[oldestQuery].refCount - 1;
   }
   const upperCaseQuery = query.toUpperCase();
   if (queryCache[upperCaseQuery]) {

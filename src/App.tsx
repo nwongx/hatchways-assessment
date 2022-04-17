@@ -28,7 +28,7 @@ function App() {
       await dispatch(fetchStudentsRequest());
     }
 
-    fetchStudentsHelper();
+    void fetchStudentsHelper();
   }, []);
 
   function nameQueryChangeHandler(input: string) {
